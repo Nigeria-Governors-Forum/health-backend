@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './create-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import * as XLSX from 'xlsx';
+import { Subject } from 'rxjs';
 
 
 
@@ -12,6 +13,12 @@ export class UserService {
     constructor(private readonly prisma: PrismaService,
         private jwtService: JwtService
     ) { }
+
+    private progress$ = new Subject<{ message: string; percent: number }>();
+
+    getProgressStream() {
+        return this.progress$.asObservable();
+    }
 
     private uniqueKeys: Record<string, string[]> = {
         Demography: ["state", "year", "indicator"],
@@ -74,7 +81,6 @@ export class UserService {
         if (!user) throw new UnauthorizedException('Invalid credentials');
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) throw new UnauthorizedException('Invalid credentials');
-
         return user;
     }
 
@@ -301,7 +307,20 @@ export class UserService {
     }
 
     async uploadFromWorkbook1(workbook: XLSX.WorkBook) {
+        let totalSheets = workbook.SheetNames.length;
+        let processedSheets = 0;
+
         for (const sheetName of workbook.SheetNames) {
+
+            processedSheets++;
+            const percent = Math.round((processedSheets / totalSheets) * 100);
+
+            // 👇 emit progress update
+            this.progress$.next({
+                message: `📂 Processing ${sheetName}  out of ${totalSheets} ...`,
+                percent,
+            });
+
             const sheetData = XLSX.utils.sheet_to_json<Record<string, any>>(
                 workbook.Sheets[sheetName]
             );
@@ -376,6 +395,7 @@ export class UserService {
                 }
 
                 console.log(`✅ ${sheetName}: ${successCount} rows processed`);
+
             } catch (err: any) {
                 console.error(`❌ Stopping at ${sheetName}: ${err.message}`);
                 return {
@@ -385,6 +405,14 @@ export class UserService {
                 };
             }
         }
+
+        // 👇 emit final completion AFTER all sheets
+        this.progress$.next({
+            message: `✅ Upload completed successfully`,
+            percent: 100,
+        });
+
+        this.progress$.complete();
 
         return { success: true, message: "Upload completed successfully" };
     }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Param, UseGuards, Put, Delete, ParseIntPipe, BadRequestException, HttpStatus, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Post, Param, UseGuards, Put, Delete, ParseIntPipe, BadRequestException, HttpStatus, UploadedFile, UseInterceptors, Sse } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './create-user.dto';
 import { LoginDto } from './login.dto';
@@ -8,6 +8,7 @@ import { RolesGuard } from './roles.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as XLSX from 'xlsx';
 import { Express } from 'express';
+import { map, Observable } from 'rxjs';
 
 
 @Controller('user')
@@ -92,6 +93,18 @@ export class UserController {
         error: error.message,
       };
     }
+  }
+
+
+  @Sse('progress/details')
+  progress(): Observable<MessageEvent> {
+    return this.userService.getProgressStream().pipe(
+      map((event: any) => {
+        return {
+          data: event,
+        } as MessageEvent;  // 👈 cast to MessageEvent
+      }),
+    );
   }
 
 }
