@@ -1,210 +1,207 @@
-
-datasource db {
-  provider = "postgresql" // or mysql/sqlite
-  url      = env("DATABASE_URL")
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
 model User {
-  id       Int    @id @default(autoincrement())
-  email String @unique
-  username String 
-  password String
-  role     String
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  username  String
+  password  String
+  role      String
   state     String
   createdAt DateTime @default(now())
 }
 
 model Demography {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  page String?
+  id        Int     @id @default(autoincrement())
+  zone      String?
+  state     String?
+  year      Int?
+  page      String?
   indicator String?
-  value Int?
+  value     Int?
 }
 
 model Partners_Mapping {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  page String?
-  partner String?
+  id                         Int     @id @default(autoincrement())
+  zone                       String?
+  state                      String?
+  year                       Int?
+  page                       String?
+  partner                    String?
   intervention_group_correct String?
-  coverage_area Int?
+  coverage_area              Int?
 }
 
 model Demography_LGA {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  page String?
-  lga String?
-  lga_population Float?
-  number_of_wards Int?
+  id                 Int     @id @default(autoincrement())
+  zone               String?
+  state              String?
+  year               Int?
+  page               String?
+  lga                String?
+  lga_population     Float?
+  number_of_wards    Int?
   hard_to_reach_lgas String?
-  health_facilities Int?
+  health_facilities  Int?
 }
 
 model HFcilities {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  page String?
+  id        Int     @id @default(autoincrement())
+  zone      String?
+  state     String?
+  year      Int?
+  page      String?
   indicator String?
-  level String?
+  level     String?
   ownership String?
-  value Int?
+  value     Int?
 }
 
 model HFcilities_Service_Provision {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  page String?
+  id                Int     @id @default(autoincrement())
+  zone              String?
+  state             String?
+  year              Int?
+  page              String?
   service_provision String?
-  number Int?
-  percentage Float?
+  number            Int?
+  percentage        Float?
 }
 
 model HRH {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  page String?
+  id          Int     @id @default(autoincrement())
+  zone        String?
+  state       String?
+  year        Int?
+  page        String?
   institution String?
-  ownership String?
-  value Int?
+  ownership   String?
+  value       Int?
 }
 
 model HRH_Professions {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  page String?
+  id          Int     @id @default(autoincrement())
+  zone        String?
+  state       String?
+  year        Int?
+  page        String?
   institution String?
-  number Int?
-  density Float?
+  number      Int?
+  density     Float?
 }
 
 model Insurance_Coverage {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  page String?
-  name String?
+  id        Int     @id @default(autoincrement())
+  zone      String?
+  state     String?
+  year      Int?
+  page      String?
+  name      String?
   indicator String?
-  value Int?
+  value     Int?
 }
 
 model Access_Service_Utilization {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  page String?
+  id        Int     @id @default(autoincrement())
+  zone      String?
+  state     String?
+  year      Int?
+  page      String?
   indicator String?
-  source String?
-  value Float?
+  source    String?
+  value     Float?
 }
 
 model Health_Outcomes {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  page String?
+  id        Int     @id @default(autoincrement())
+  zone      String?
+  state     String?
+  year      Int?
+  page      String?
   indicator String?
-  value Int?
+  value     Int?
 }
 
 model Scorecards {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  name String?
-  period DateTime?
+  id        Int       @id @default(autoincrement())
+  zone      String?
+  state     String?
+  name      String?
+  period    DateTime?
   indicator String?
-  status String?
-  value Int?
+  status    String?
+  value     Int?
 }
 
 model NDHS {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  category String?
+  id        Int     @id @default(autoincrement())
+  zone      String?
+  state     String?
+  year      Int?
+  category  String?
   indicator String?
-  value Float?
-  source String?
+  value     Float?
+  source    String?
 }
 
 model HFin_1 {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  category String?
+  id        Int     @id @default(autoincrement())
+  zone      String?
+  state     String?
+  year      Int?
+  category  String?
   indicator String?
-  exp_type String?
-  status String?
-  value BigInt?
+  exp_type  String?
+  status    String?
+  value     Decimal?
 }
 
 model HFin_2 {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  category String?
+  id        Int     @id @default(autoincrement())
+  zone      String?
+  state     String?
+  year      Int?
+  category  String?
   indicator String?
-  exp_type String?
-  status String?
-  value BigInt? 
+  exp_type  String?
+  status    String?
+  value     Decimal?
 }
 
 model Per_Capita {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  health_exp Float?
+  id               Int     @id @default(autoincrement())
+  zone             String?
+  state            String?
+  year             Int?
+  health_exp       Float?
   state_population Float?
-  per_capita Float?
+  per_capita       Float?
 }
 
 model LGA_Fin {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  lga String?
+  id        Int     @id @default(autoincrement())
+  zone      String?
+  state     String?
+  year      Int?
+  lga       String?
   indicator String?
-  exp_type String?
-  status String?
+  exp_type  String?
+  status    String?
 }
 
 model LGA_PCap {
-  id Int @id @default(autoincrement())
-  zone String?
-  state String?
-  year Int?
-  lga String?
-  indicator String?
+  id         Int     @id @default(autoincrement())
+  zone       String?
+  state      String?
+  year       Int?
+  lga        String?
+  indicator  String?
   population Float?
   per_capita Int?
 }
-
-

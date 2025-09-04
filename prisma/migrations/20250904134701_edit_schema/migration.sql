@@ -190,7 +190,7 @@ CREATE TABLE "public"."HFin_1" (
     "indicator" TEXT,
     "exp_type" TEXT,
     "status" TEXT,
-    "value" BIGINT,
+    "value" DECIMAL(65,30),
 
     CONSTRAINT "HFin_1_pkey" PRIMARY KEY ("id")
 );
@@ -205,7 +205,7 @@ CREATE TABLE "public"."HFin_2" (
     "indicator" TEXT,
     "exp_type" TEXT,
     "status" TEXT,
-    "value" BIGINT,
+    "value" DECIMAL(65,30),
 
     CONSTRAINT "HFin_2_pkey" PRIMARY KEY ("id")
 );
