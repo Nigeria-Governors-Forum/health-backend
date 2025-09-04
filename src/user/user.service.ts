@@ -16,10 +16,6 @@ export class UserService {
 
     private progress$ = new Subject<{ message: string; percent: number }>();
 
-    getProgressStream() {
-        return this.progress$.asObservable();
-    }
-
     private uniqueKeys: Record<string, string[]> = {
         Demography: ["state", "year", "indicator"],
         Demography_LGA: ["state", "lga", "year"],
@@ -235,77 +231,6 @@ export class UserService {
         }
     }
 
-    async uploadFromWorkbookYear(year: number, workbook: XLSX.WorkBook) {
-        for (const sheetName of workbook.SheetNames) {
-            const sheetData = XLSX.utils.sheet_to_json<Record<string, any>>(workbook.Sheets[sheetName]);
-            if (!sheetData.length) continue;
-
-            const modelName =
-                sheetName.charAt(0).toLowerCase() +
-                sheetName.slice(1).replace(/\s+/g, "_");
-
-            const prismaModel = (this.prisma as any)[modelName];
-            if (!prismaModel) {
-                console.warn(`⚠️ Skipping ${sheetName} — not found in Prisma client`);
-                continue;
-            }
-
-            console.log(`📂 Processing ${sheetName} ...`);
-
-            let successCount = 0;
-            try {
-                for (const row of sheetData) {
-                    const sanitized: Record<string, any> = {};
-
-                    for (const key of Object.keys(row)) {
-                        let fieldName = key.replace(/\s+/g, "_").toLowerCase();
-                        let value = row[key];
-
-                        // Handle "no data" gracefully
-                        if (typeof value === "string" && value.trim().toLowerCase() === "no data") {
-                            value = 0; // default to 0 for numbers
-                        }
-
-                        // Date handling
-                        if (fieldName === "period" && value) {
-                            try {
-                                value = new Date(value);
-                            } catch {
-                                throw new Error(`Invalid date in ${sheetName}.${fieldName}: ${value}`);
-                            }
-                        }
-
-                        // Round numbers if schema expects Int
-                        if (
-                            ["value", "coverage_area", "number", "per_capita", "state_population", "lga_population"].includes(fieldName) &&
-                            typeof value === "number"
-                        ) {
-                            value = Math.round(value);
-                        }
-
-                        sanitized[fieldName] = value;
-                    }
-
-                    sanitized.year = year;
-
-                    await prismaModel.create({ data: sanitized });
-                    successCount++;
-                }
-
-                console.log(`✅ ${sheetName}: ${successCount} rows inserted`);
-            } catch (err: any) {
-                console.error(`❌ Stopping at ${sheetName}: ${err.message}`);
-                return {
-                    success: false,
-                    message: `Upload stopped. Fix issues in sheet: ${sheetName}`,
-                    error: err.message,
-                };
-            }
-        }
-
-        return { success: true, message: "Upload completed successfully" };
-    }
-
     async uploadFromWorkbook1(workbook: XLSX.WorkBook) {
         let totalSheets = workbook.SheetNames.length;
         let processedSheets = 0;
@@ -347,11 +272,6 @@ export class UserService {
                         let fieldName = key.replace(/\s+/g, "_").toLowerCase();
                         let value = row[key];
 
-                        // Handle "no data"
-                        // if (typeof value === "string" && (value.trim().toLowerCase() === "No Data" || value === "No Data" || value === undefined || value === null)) {
-                        //     value = 0;
-                        // }
-
                         // Date handling
                         if (fieldName === "period" && value) {
                             value = new Date(value);
@@ -359,8 +279,6 @@ export class UserService {
 
                         sanitized[fieldName] = value;
                     }
-
-                    // sanitized.year;
 
                     const uniqueFields = this.uniqueKeys[sheetName];
                     if (!uniqueFields) {
@@ -398,6 +316,10 @@ export class UserService {
 
             } catch (err: any) {
                 console.error(`❌ Stopping at ${sheetName}: ${err.message}`);
+                this.progress$.next({
+                    message: `❌ Upload stopped at ${sheetName}: ${err.message}`,
+                    percent,
+                });
                 return {
                     success: false,
                     message: `Upload stopped. Fix issues in sheet: ${sheetName}`,
@@ -415,5 +337,9 @@ export class UserService {
         this.progress$.complete();
 
         return { success: true, message: "Upload completed successfully" };
+    }
+
+    getProgressStream() {
+        return this.progress$.asObservable();
     }
 }
