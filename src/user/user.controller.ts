@@ -8,7 +8,7 @@ import { RolesGuard } from './roles.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as XLSX from 'xlsx';
 import { Express } from 'express';
-import { map, Observable } from 'rxjs';
+import { interval, map, Observable } from 'rxjs';
 
 
 @Controller('user')
@@ -97,13 +97,19 @@ export class UserController {
 
 
   @Sse('progress/details')
-  progress(): Observable<MessageEvent> {
-    return this.userService.getProgressStream().pipe(
-      map((event: any) => {
-        return {
-          data: event,
-        } as MessageEvent;  // 👈 cast to MessageEvent
-      }),
+  progress(): Observable<{ data: any }> {
+        // return this.userService.getProgressStream().pipe(
+        //   map((event: any) => {
+        //     return {
+        //       data: event,
+        //     };
+        //   }),
+        // );
+
+    return interval(1000).pipe(
+      map((i) => ({
+        data: { step: i, status: "running" },
+      })),
     );
   }
 
