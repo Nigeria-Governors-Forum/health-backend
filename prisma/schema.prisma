@@ -193,7 +193,7 @@ model LGA_Fin {
   indicator String?
   exp_type  String?
   status    String?
-  value    Float?
+  value     Float?
 }
 
 model LGA_PCap {
@@ -203,6 +203,7 @@ model LGA_PCap {
   year       Int?
   lga        String?
   indicator  String?
+  budget     Float?
   population Float?
   per_capita Int?
 }
