@@ -193,6 +193,7 @@ model LGA_Fin {
   indicator String?
   exp_type  String?
   status    String?
+  value    Float?
 }
 
 model LGA_PCap {

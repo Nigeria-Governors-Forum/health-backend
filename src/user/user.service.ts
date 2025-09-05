@@ -4,7 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './create-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import * as XLSX from 'xlsx';
-import { Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 
 
 
@@ -242,7 +242,7 @@ export class UserService {
 
             // 👇 emit progress update
             this.progress$.next({
-                message: `📂 Processing ${sheetName}  out of ${totalSheets} ...`,
+                message: `📂 Processing ${sheetName} out of ${totalSheets} ...`,
                 percent,
             });
 
@@ -339,7 +339,7 @@ export class UserService {
         return { success: true, message: "Upload completed successfully" };
     }
 
-    getProgressStream() {
+    getProgressStream(): Observable<{ message: string; percent: number }> {
         return this.progress$.asObservable();
     }
 }
