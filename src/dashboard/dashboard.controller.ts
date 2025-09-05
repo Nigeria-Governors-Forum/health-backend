@@ -31,4 +31,12 @@ export class DashboardController {
   remove(@Param('id') id: string) {
     return this.dashboardService.remove(+id);
   }
+
+  @Get(':state/:year')
+  getDashboardData(@Param('state') state: string, @Param('year') year: string) {
+    console.log(state, year);
+    
+    return this.dashboardService.getDashboardData(state, year);
+  }
+
 }
