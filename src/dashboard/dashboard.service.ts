@@ -45,6 +45,18 @@ export class DashboardService {
       where: { state, year: Number(year) }
     });
 
+    const insuranceCoverage = await this.prisma.insurance_Coverage.findMany({
+      where: { state, year: Number(year) }
+    });
+
+    const partnersMapping = await this.prisma.partners_Mapping.findMany({
+      where: { state, year: Number(year) }
+    });
+
+    const accessServiceUtilization = await this.prisma.access_Service_Utilization.findMany({
+      where: { state, year: Number(year) }
+    });
+
     const totals = hFacilities.reduce((acc, f) => {
       const level = f.level ?? "Unknown";
       const value = f.value ?? 0;
@@ -72,6 +84,9 @@ export class DashboardService {
             0
           ),
         },
+        insurance_coverage: insuranceCoverage,
+        partners_mapping: partnersMapping,
+        access_service_utilization: accessServiceUtilization,
       },
     };
   }
