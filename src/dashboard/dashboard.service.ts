@@ -30,22 +30,28 @@ export class DashboardService {
 
   async getDashboardData(state: string, year: string) {
     const rows = await this.prisma.demography.findMany({
-      where: {
-        state: state,
-        year: Number(year)
-      }
+      where: { state, year: Number(year) }
     });
 
     const data: Record<string, number | null> = {};
     rows.forEach((row) => {
       const key = row.indicator
         ? row.indicator.toLowerCase().replace(/\s+/g, "_")
-        : ""; // normalize indicator names, handle null
-      if (key) {
-        data[key] = row.value;
-      }
+        : "";
+      if (key) data[key] = row.value;
     });
-    
+
+    const hFacilities = await this.prisma.hFcilities.findMany({
+      where: { state, year: Number(year) }
+    });
+
+    const totals = hFacilities.reduce((acc, f) => {
+      const level = f.level ?? "Unknown";
+      const value = f.value ?? 0;
+      acc[level] = (acc[level] || 0) + value;
+      return acc;
+    }, {} as Record<string, number>);
+
     return {
       data: {
         year_created: data["year_created"] ?? null,
@@ -57,8 +63,18 @@ export class DashboardService {
         under_5: data["under_5"] ?? null,
         wcba: data["wcba"] ?? null,
         pregnant_women: data["pregnant_women"] ?? null,
+        healthFacilities: {
+          total_primary: totals["Primary"] ?? 0,
+          total_secondary: totals["Secondary"] ?? 0,
+          total_tertiary: totals["Tertiary"] ?? 0,
+          total_health_facilities: Object.values(totals).reduce<number>(
+            (a, b) => a + b,
+            0
+          ),
+        },
       },
     };
   }
+
 }
 
