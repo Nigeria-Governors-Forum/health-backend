@@ -88,14 +88,14 @@ export class DashboardService {
 
     // filter to only the indicators we care about
     const graphData = nDHS.filter(item =>
-      ["4th ANC Visit", "Stunting"].includes(item?.indicator?.trim() ?? "")
+      ["4th ANC Visit", "Stunting", "Full Vaccination"].includes(item?.indicator?.trim() ?? "")
     );
 
     const result = [Number(year) - 2, Number(year) - 1, Number(year)].map(y => {
       const yearData = graphData.filter(item => item.year === y);
 
-      const stunting = yearData.find(item => item?.indicator?.trim() === "Stunting");
-      const zeroDose = stunting ? 100 - (stunting.value ?? 0) : null;
+      const fullVaccination = yearData.find(item => item?.indicator?.trim() === "Full Vaccination");
+      const zeroDose = fullVaccination ? 100 - (fullVaccination?.value ?? 0) : null;
 
       return {
         year: y,
