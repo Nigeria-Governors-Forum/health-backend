@@ -125,7 +125,7 @@ export class DashboardService {
         no_of_lgas: data["no_of_lgas"] ?? null,
         political_wards: data["political_wards"] ?? null,
         total_population: data["total_population"] ?? null,
-        healthFacilities: Object.values(totals).reduce<number>(
+        health_facilities: Object.values(totals).reduce<number>(
           (a, b) => a + b,
           0
         ),
@@ -136,9 +136,9 @@ export class DashboardService {
         partners_mapping: uniquePartners.length,
         hRH: hRH.reduce((acc, cur) => acc + (Number(cur?.value) || 0), 0),
         hRH_Professions: hRH_Professions.reduce((acc, cur) => acc + (Number(cur.number) || 0), 0),
-        graphData: result,
+        graph_data: result,
         demography_LGA,
-        totalHardToReach,
+        total_Hard_To_Reach:totalHardToReach,
       },
     };
   }

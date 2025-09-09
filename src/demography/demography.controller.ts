@@ -5,7 +5,7 @@ import { UpdateDemographyDto } from './dto/update-demography.dto';
 
 @Controller('demography')
 export class DemographyController {
-  constructor(private readonly demographyService: DemographyService) {}
+  constructor(private readonly demographyService: DemographyService) { }
 
   @Post()
   create(@Body() createDemographyDto: CreateDemographyDto) {
@@ -30,5 +30,11 @@ export class DemographyController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.demographyService.remove(+id);
+  }
+
+  @Get(':state/:year')
+  getDemographyData(@Param('state') state: string, @Param('year') year: string) {
+    console.log(state, year);
+    return this.demographyService.getDemographyData(state, year);
   }
 }
