@@ -5,7 +5,7 @@ import { UpdateHumanResourceDto } from './dto/update-human-resource.dto';
 
 @Controller('human-resource')
 export class HumanResourceController {
-  constructor(private readonly humanResourceService: HumanResourceService) {}
+  constructor(private readonly humanResourceService: HumanResourceService) { }
 
   @Post()
   create(@Body() createHumanResourceDto: CreateHumanResourceDto) {
@@ -30,5 +30,11 @@ export class HumanResourceController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.humanResourceService.remove(+id);
+  }
+
+
+  @Get(':state/:year')
+  getDashboardData(@Param('state') state: string, @Param('year') year: string) {
+    return this.humanResourceService.getHumanResourceData(state, year);
   }
 }
