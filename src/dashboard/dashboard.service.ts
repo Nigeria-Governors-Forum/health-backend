@@ -32,6 +32,7 @@ export class DashboardService {
     const rows = await this.prisma.demography.findMany({
       where: { state, year: Number(year) }
     });
+    
 
     const data: Record<string, number | null> = {};
     rows.forEach((row) => {
@@ -95,7 +96,7 @@ export class DashboardService {
       const yearData = graphData.filter(item => item.year === y);
 
       const fullVaccination = yearData.find(item => item?.indicator?.trim() === "Full Vaccination");
-      const zeroDose = fullVaccination ? 100 - (fullVaccination?.value ?? 0) : null;
+      const zeroDose = fullVaccination ? 1 - (fullVaccination?.value ?? 0) : null;
 
       return {
         year: y,
