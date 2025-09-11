@@ -33,7 +33,19 @@ export class ScorecardController {
   }
 
   @Get(':state/:year/:category')
-  getScorecard(@Param('state') state: string, @Param('year') year: string, @Param('category') category: string) {
-    return this.scorecardService.getScorecardData(state, year, category);
+  getScorecard(
+    @Param('state') state: string,
+    @Param('year') year: string,
+    @Param('category') category: string,
+    @Param('round') round?: string,) {
+    return this.scorecardService.getScorecardData(state, year, category, round);
+  }
+  @Get(':state/:year/:category/:round')
+  getScorecardRound(
+    @Param('state') state: string,
+    @Param('year') year: string,
+    @Param('category') category: string,
+    @Param('round') round?: string,) {
+    return this.scorecardService.getScorecardData(state, year, category, round);
   }
 }

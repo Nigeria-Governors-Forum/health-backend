@@ -27,26 +27,55 @@ export class ScorecardService {
     return `This action removes a #${id} scorecard`;
   }
 
-  async getScorecardData(state: string, year: string, category: string) {
+  async getScorecardData(state: string, year: string, category: string, round?: string) {
+    console.log(state, year, category, round);
 
-    console.log(state, year, category);
-    
-    const scorecard = await this.prisma.scorecards.findMany({
+    // First, fetch ALL scorecards for that year + category
+    // const scorecards = await this.prisma.scorecards.findMany({
+    //   where: {
+    //     //if year is undefined, then use round
+    //     year: Number(year),
+    //     name: {
+    //       contains: category.trim(),
+    //       mode: "insensitive",
+    //     },
+    //   },
+    // });
+    const scorecards = await this.prisma.scorecards.findMany({
       where: {
-        state,
-        year: Number(year),
+        ...(round
+          ? { round: round.trim() }   // ✅ use round if provided
+          : year
+            ? { year: Number(year) }  // ✅ else use year
+            : {}),                    // no filter if both are missing
         name: {
           contains: category.trim(),
           mode: "insensitive",
         },
-      }
+      },
     });
 
-    // console.log('score', scorecard);
+    // Extract the one(s) for the selected state
+    const selectedState = scorecards.filter(item => item.state === state);
+
+    // Extract all others
+    const groupedStates = scorecards
+      .filter(item => item.state !== state && item.state !== null && item.state !== undefined)
+      .reduce((acc, curr) => {
+        const stateKey = curr.state ?? 'UNKNOWN';
+        if (!acc[stateKey]) {
+          acc[stateKey] = [];
+        }
+        acc[stateKey].push(curr);
+        return acc;
+      }, {} as Record<string, typeof scorecards>);
+
     return {
       data: {
-        scorecard
+        selected_state: selectedState,
+        all_states: groupedStates,
       },
     };
   }
+
 }
