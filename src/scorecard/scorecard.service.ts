@@ -28,19 +28,6 @@ export class ScorecardService {
   }
 
   async getScorecardData(state: string, year: string, category: string, round?: string) {
-    console.log(state, year, category, round);
-
-    // First, fetch ALL scorecards for that year + category
-    // const scorecards = await this.prisma.scorecards.findMany({
-    //   where: {
-    //     //if year is undefined, then use round
-    //     year: Number(year),
-    //     name: {
-    //       contains: category.trim(),
-    //       mode: "insensitive",
-    //     },
-    //   },
-    // });
     const scorecards = await this.prisma.scorecards.findMany({
       where: {
         ...(round
