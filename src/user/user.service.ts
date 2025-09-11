@@ -24,7 +24,7 @@ export class UserService {
         HFin_2: ["state", "year", "indicator", "exp_type", "status"],
         LGA_Fin: ["state", "lga", "year", "indicator", "exp_type", "status"],
         LGA_PCap: ["state", "lga", "year"],
-        Scorecards: ["state", "name", "period", "indicator"],
+        Scorecards: ["state", "name", "year", "indicator"],
         Partners_Mapping: ["state", "year", "partner", "intervention_group_correct"],
         HFcilities: ["state", "year", "indicator", "level", "ownership"],
         HFcilities_Service_Provision: ["state", "year", "service_provision"],

@@ -128,17 +128,6 @@ model Health_Outcomes {
   value     Int?
 }
 
-model Scorecards {
-  id        Int       @id @default(autoincrement())
-  zone      String?
-  state     String?
-  name      String?
-  period    DateTime?
-  indicator String?
-  status    String?
-  value     Int?
-}
-
 model NDHS {
   id        Int     @id @default(autoincrement())
   zone      String?
@@ -202,8 +191,20 @@ model LGA_PCap {
   state      String?
   year       Int?
   lga        String?
-  indicator  String?
-  budget     Float?
   population Float?
   per_capita Int?
+  indicator  String?
+  budget     Float?
+}
+
+model Scorecards {
+  id        Int       @id @default(autoincrement())
+  zone      String?
+  state     String?
+  name      String?
+  round      String?
+  year    Int?
+  indicator String?
+  status    String?
+  value     Int?
 }

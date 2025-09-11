@@ -5,7 +5,7 @@ import { UpdateScorecardDto } from './dto/update-scorecard.dto';
 
 @Controller('scorecard')
 export class ScorecardController {
-  constructor(private readonly scorecardService: ScorecardService) {}
+  constructor(private readonly scorecardService: ScorecardService) { }
 
   @Post()
   create(@Body() createScorecardDto: CreateScorecardDto) {
@@ -30,5 +30,10 @@ export class ScorecardController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.scorecardService.remove(+id);
+  }
+
+  @Get(':state/:year/:category')
+  getScorecard(@Param('state') state: string, @Param('year') year: string, @Param('category') category: string) {
+    return this.scorecardService.getScorecardData(state, year, category);
   }
 }

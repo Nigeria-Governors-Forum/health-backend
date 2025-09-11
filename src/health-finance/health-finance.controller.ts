@@ -5,7 +5,7 @@ import { UpdateHealthFinanceDto } from './dto/update-health-finance.dto';
 
 @Controller('health-finance')
 export class HealthFinanceController {
-  constructor(private readonly healthFinanceService: HealthFinanceService) {}
+  constructor(private readonly healthFinanceService: HealthFinanceService) { }
 
   @Post()
   create(@Body() createHealthFinanceDto: CreateHealthFinanceDto) {
@@ -30,5 +30,15 @@ export class HealthFinanceController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.healthFinanceService.remove(+id);
+  }
+
+  @Get(':state/:year')
+  getHealthFinanceData(@Param('state') state: string, @Param('year') year: string) {
+    return this.healthFinanceService.getHealthFinanceData(state, year);
+  }
+
+  @Get('zonal/:zone/:state/:year')
+  getZonalHealthFinance(@Param('zone') zone: string, @Param('state') state: string, @Param('year') year: string) {
+    return this.healthFinanceService.getHealthFinanceData(zone, year);
   }
 }
