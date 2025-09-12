@@ -117,7 +117,7 @@ export class HealthFacilitiesService {
 
 async getZonalHealthFacilityData(zone: string, year: string) {
   const yearNum = Number(year);
-
+  
   // 1) load ALL health facilities for the year
   const hFacilities = await this.prisma.hFcilities.findMany({
     where: { year: yearNum }

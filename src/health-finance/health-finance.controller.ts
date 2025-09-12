@@ -39,6 +39,6 @@ export class HealthFinanceController {
 
   @Get('zonal/:zone/:state/:year')
   getZonalHealthFinance(@Param('zone') zone: string, @Param('state') state: string, @Param('year') year: string) {
-    return this.healthFinanceService.getHealthFinanceData(zone, year);
+    return this.healthFinanceService.getZonalHealthFinanceData(zone, year);
   }
 }
