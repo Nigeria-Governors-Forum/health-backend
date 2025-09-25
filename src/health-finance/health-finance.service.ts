@@ -68,7 +68,7 @@ export class HealthFinanceService {
     };
 
     const yearlyTotals: { name: string; budgeted: number; actual: number }[] = [];
-    for (let y = yearNum - 3; y <= yearNum; y++) {
+    for (let y = yearNum - 2; y <= yearNum; y++) {
       yearlyTotals.push(formatYearlyData(hFin, y));
     }
 
