@@ -51,7 +51,7 @@ export class HealthFinanceService {
     const hFin = await this.prisma.hFin_2.findMany({
       where: {
         state,
-        year: { gte: yearNum - 3, lte: yearNum },
+        year: { gte: yearNum - 2, lte: yearNum },
       },
     });
 
@@ -134,87 +134,6 @@ export class HealthFinanceService {
     };
   }
 
-  // async getZonalHealthFinanceData(zone: string, year: string) {
-  //   const yearNum = Number(year);
-
-  //   // 1) Load all rows for the zone + year
-  //   const hFin = await this.prisma.hFin_2.findMany({
-  //     where: { year: yearNum, zone },
-  //   });
-
-  //   console.log(`🔎 Loaded ${hFin.length} rows for ${zone} in ${yearNum}`);
-
-  //   // 2) Group state-level budgets
-  //   const groupedByState = hFin.reduce<
-  //     Record<
-  //       string,
-  //       {
-  //         state: string;
-  //         zone: string;
-  //         healthBudget: number;
-  //         stateBudget: number;
-  //       }
-  //     >
-  //   >((acc, row) => {
-  //     const st = (row.state ?? '').trim();
-  //     if (!acc[st]) {
-  //       acc[st] = {
-  //         state: st,
-  //         zone: row?.zone ?? '',
-  //         healthBudget: 0,
-  //         stateBudget: 0,
-  //       };
-  //     }
-
-  //     const val = Number(row.value ?? 0);
-
-  //     if (row.indicator === 'Health Budget' && row.status === 'Budgeted') {
-  //       acc[st].healthBudget += val;
-  //     } else if (row.indicator === 'State Budget' && row.status === 'Budgeted') {
-  //       acc[st].stateBudget += val;
-  //     }
-
-  //     return acc;
-  //   }, {});
-
-  //   // 3) Prepare state totals
-  //   const states = Object.values(groupedByState).map((s) => ({
-  //     state: s.state,
-  //     // zone: s.zone,
-  //     healthBudget: s.healthBudget,
-  //     stateBudget: s.stateBudget,
-  //     total:
-  //       s.stateBudget > 0
-  //         ? Number(((s.healthBudget / s.stateBudget) * 100).toFixed(2))
-  //         : 0,
-  //   }));
-
-  //   const perCapita = await this.prisma.per_Capita.findMany({
-  //     where: { year: yearNum, zone },
-  //   });
-
-
-  //   // 4) Zonal totals
-  //   const zonalHealthTotal = states.reduce(
-  //     (sum, state) => sum + state.healthBudget,
-  //     0,
-  //   );
-  //   const zonalStateTotal = states.reduce(
-  //     (sum, state) => sum + state.stateBudget,
-  //     0,
-  //   );
-
-  //   return {
-  //     data: {
-  //       zone,
-  //       year: yearNum,
-  //       zonalHealthTotal,
-  //       zonalStateTotal,
-  //       states,
-  //       per_capita: perCapita,
-  //     },
-  //   };
-  // }
 async getZonalHealthFinanceData(zone: string, year: string) {
   const yearNum = Number(year);
 
