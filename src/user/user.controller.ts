@@ -55,7 +55,7 @@ export class UserController {
   async uploadDataForYear(
     @Param('year', ParseIntPipe) year: number,
     @UploadedFile() file: Express.Multer.File,
-  ) {
+  ) {    
     try {
       // Validate year
       if (year < 2000) {

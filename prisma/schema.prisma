@@ -18,13 +18,15 @@ model User {
 }
 
 model Demography {
-  id        Int     @id @default(autoincrement())
-  zone      String?
-  state     String?
-  year      Int?
-  page      String?
-  indicator String?
-  value     Int?
+  id         Int     @id @default(autoincrement())
+  zone       String?
+  state      String?
+  year       Int?
+  page       String?
+  indicator  String?
+  value      Int?
+  category_1 String?
+  category_2 String?
 }
 
 model Partners_Mapping {
@@ -198,13 +200,13 @@ model LGA_PCap {
 }
 
 model Scorecards {
-  id        Int       @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   zone      String?
   state     String?
   name      String?
-  round      String?
-  year    Int?
   indicator String?
   status    String?
   value     Int?
+  round     String?
+  year      Int?
 }

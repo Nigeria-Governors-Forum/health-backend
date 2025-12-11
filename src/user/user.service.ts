@@ -89,6 +89,7 @@ export class UserService {
     }
 
     async uploadFromWorkbook(year: number, workbook: XLSX.WorkBook) {
+        console.log("Demography fields:", this.prisma.demography.fields);
         try {
 
 
@@ -232,6 +233,8 @@ export class UserService {
     }
 
     async uploadFromWorkbook1(workbook: XLSX.WorkBook) {
+        console.log("Demography fields:", this.prisma.demography.fields);
+        // process.exit();
         let totalSheets = workbook.SheetNames.length;
         let processedSheets = 0;
 

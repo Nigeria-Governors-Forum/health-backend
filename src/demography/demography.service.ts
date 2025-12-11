@@ -29,6 +29,7 @@ export class DemographyService {
   }
 
   async getDemographyData(state: string, year: string) {
+    
     const rows = await this.prisma.demography.findMany({
       where: { state, year: Number(year) }
     });
