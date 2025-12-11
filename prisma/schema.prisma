@@ -118,6 +118,7 @@ model Access_Service_Utilization {
   indicator String?
   source    String?
   value     Float?
+  target    String?
 }
 
 model Health_Outcomes {
@@ -209,4 +210,47 @@ model Scorecards {
   value     Int?
   round     String?
   year      Int?
+}
+
+model Admission_Quota {
+  id              Int     @id @default(autoincrement())
+  zone            String?
+  state           String?
+  year            Int?
+  school          String?
+  faculty         String?
+  admission_quota Int?
+}
+
+model LGA_Population {
+  id                  Int     @id @default(autoincrement())
+  zone                String?
+  state               String?
+  year                Int?
+  lga                 String?
+  population          Float?
+  wards               Int?
+  hard_To_Reach_Wards Int?
+  hard_To_Reach       String?
+  nothing             String?
+  health_Facilities   Int?
+  density             Int?
+}
+
+model Flagship_Project {
+  id               Int     @id @default(autoincrement())
+  zone             String?
+  state            String?
+  year             Int?
+  flagship_Project String?
+  description      String?
+}
+
+model Presidential_Indicators {
+  id        Int     @id @default(autoincrement())
+  zone      String?
+  state     String?
+  year      Int?
+  indicator String?
+  value     Int?
 }
