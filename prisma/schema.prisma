@@ -118,7 +118,7 @@ model Access_Service_Utilization {
   indicator String?
   source    String?
   value     Float?
-  target    String?
+  target    Float?
 }
 
 model Health_Outcomes {

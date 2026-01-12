@@ -7,7 +7,10 @@ import * as XLSX from 'xlsx';
 import { Observable, Subject } from 'rxjs';
 
 
-
+function excelDateToYear(excelDate: number): number {
+    const date = new Date((excelDate - 25569) * 86400 * 1000);
+    return date.getFullYear();
+}
 @Injectable()
 export class UserService {
     constructor(private readonly prisma: PrismaService,
@@ -15,6 +18,9 @@ export class UserService {
     ) { }
 
     private progress$ = new Subject<{ message: string; percent: number }>();
+
+
+
 
     private uniqueKeys: Record<string, string[]> = {
         Demography: ["state", "year", "indicator"],
@@ -34,6 +40,7 @@ export class UserService {
         Health_Outcomes: ["state", "year", "indicator"],
         NDHS: ["state", "year", "category", "indicator"],
         Per_Capita: ["state", "year"], // only one per state/year
+        Admission_Quota: ["state", "year"], // only one per state/year
     };
 
     async findAll() {
@@ -88,153 +95,7 @@ export class UserService {
         };
     }
 
-    async uploadFromWorkbook(year: number, workbook: XLSX.WorkBook) {
-        console.log("Demography fields:", this.prisma.demography.fields);
-        try {
-
-
-            for (const sheetName of workbook.SheetNames) {
-                const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-                if (!sheetData.length) continue;
-
-                const modelName =
-                    sheetName.charAt(0).toLowerCase() +
-                    sheetName.slice(1).replace(/\s+/g, "_");
-
-                const prismaModel = (this.prisma as any)[modelName];
-                if (!prismaModel) {
-                    console.warn(`⚠️ Skipping ${sheetName} — not found in Prisma client`);
-                    continue;
-                }
-
-                for (const row of sheetData) {
-                    const sanitized: any = {};
-                    const rowObj = row as any;
-                    for (const key in rowObj) {
-                        if (!rowObj.hasOwnProperty(key)) continue;
-                        let fieldName = key.replace(/\s+/g, "_").toLowerCase();
-                        let value = rowObj[key];
-
-                        if (fieldName === "period" && value) {
-                            value = new Date(value);
-                        }
-                        if (fieldName === "per_capita" && typeof value === "number") {
-                            value = Math.round(value);
-                        }
-
-                        sanitized[fieldName] = value;
-                    }
-                    sanitized.year = year;
-
-                    // Define unique keys per model
-                    let where: any = {};
-                    switch (sheetName) {
-                        case "Demography":
-                            where = {
-                                state_year_indicator: {
-                                    state: sanitized.state,
-                                    year: sanitized.year,
-                                    indicator: sanitized.indicator,
-                                },
-                            };
-                            break;
-
-                        case "Demography_LGA":
-                            where = {
-                                state_lga_year: {
-                                    state: sanitized.state,
-                                    lga: sanitized.lga,
-                                    year: sanitized.year,
-                                },
-                            };
-                            break;
-
-                        case "Access_Service_Utilization":
-                            where = {
-                                state_year_indicator: {
-                                    state: sanitized.state,
-                                    year: sanitized.year,
-                                    indicator: sanitized.indicator,
-                                },
-                            };
-                            break;
-
-                        case "HFin_1":
-                        case "HFin_2":
-                            where = {
-                                state_year_indicator_exp_type_status: {
-                                    state: sanitized.state,
-                                    year: sanitized.year,
-                                    indicator: sanitized.indicator,
-                                    exp_type: sanitized.exp_type,
-                                    status: sanitized.status,
-                                },
-                            };
-                            break;
-
-                        case "LGA_Fin":
-                            where = {
-                                state_lga_year_indicator_exp_type_status: {
-                                    state: sanitized.state,
-                                    lga: sanitized.lga,
-                                    year: sanitized.year,
-                                    indicator: sanitized.indicator,
-                                    exp_type: sanitized.exp_type,
-                                    status: sanitized.status,
-                                },
-                            };
-                            break;
-
-                        case "LGA_PCap":
-                            where = {
-                                state_lga_year: {
-                                    state: sanitized.state,
-                                    lga: sanitized.lga,
-                                    year: sanitized.year,
-                                },
-                            };
-                            break;
-
-                        case "Scorecards":
-                            where = {
-                                state_name_period_indicator: {
-                                    state: sanitized.state,
-                                    name: sanitized.name,
-                                    period: sanitized.period,
-                                    indicator: sanitized.indicator,
-                                },
-                            };
-                            break;
-
-                        default:
-                            console.warn(`⚠️ No upsert rule for ${sheetName}, skipping...`);
-                            continue;
-                    }
-
-                    try {
-                        await prismaModel.upsert({
-                            where,
-                            update: sanitized,
-                            create: sanitized,
-                        });
-                    } catch (err: any) {
-                        console.error(`❌ Error upserting into ${modelName}:`, err.message);
-                    }
-                }
-
-                console.log(`✅ Processed ${sheetData.length} rows for ${sheetName}`);
-            }
-
-            return { success: true, message: "Upload completed with upsert logic" };
-        } catch (error) {
-            console.error(`❌ Error processing upload for year ${year}:`, error.message);
-            return { success: false, message: `Upload failed for year ${year}`, error: error.message };
-        }
-    }
-
-    async uploadFromWorkbook1(workbook: XLSX.WorkBook) {
-        console.log("Demography fields:", this.prisma.demography.fields);
-        // process.exit();
+    async uploadFromWorkbook(workbook: XLSX.WorkBook) {
         let totalSheets = workbook.SheetNames.length;
         let processedSheets = 0;
 
@@ -277,7 +138,8 @@ export class UserService {
 
                         // Date handling
                         if (fieldName === "period" && value) {
-                            value = new Date(value);
+                            sanitized.year = excelDateToYear(value);
+                            continue;
                         }
 
                         sanitized[fieldName] = value;
@@ -300,16 +162,20 @@ export class UserService {
                         await prismaModel.create({ data: sanitized });
                     } else {
                         // Compare full record
-                        const isSame = Object.keys(sanitized).every(
-                            (key) => sanitized[key] === (existing as any)[key]
-                        );
+                        // const isSame = Object.keys(sanitized).every(
+                        //     (key) => sanitized[key] === (existing as any)[key]
+                        // );
 
-                        if (!isSame) {
-                            await prismaModel.updateMany({
-                                where,
-                                data: sanitized,
-                            });
-                        }
+                        // if (!isSame) {
+                        //     await prismaModel.updateMany({
+                        //         where,
+                        //         data: sanitized,
+                        //     });
+                        // }
+                        await prismaModel.update({
+                            where: { id: existing.id },
+                            data: sanitized,
+                        });
                     }
 
                     successCount++;

@@ -68,9 +68,9 @@ export class UserController {
         throw new BadRequestException('Excel file is required');
       }
 
-      if (!file.originalname.match(/\.(xlsx|xls)$/)) {
+      if (!file.originalname.match(/\.(xlsx|xls|xlsb)$/)) {
         throw new BadRequestException(
-          'Only Excel files (.xlsx, .xls) are allowed',
+          'Only Excel files (.xlsx, .xls, .xlsb) are allowed',
         );
       }
 
@@ -78,7 +78,7 @@ export class UserController {
       const workbook = XLSX.read(file.buffer, { type: 'buffer' });
 
       // Call service and pass workbook directly
-      const result = await this.userService.uploadFromWorkbook1(
+      const result = await this.userService.uploadFromWorkbook(
         workbook,
       );
 
