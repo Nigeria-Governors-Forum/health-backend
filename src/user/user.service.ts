@@ -39,8 +39,10 @@ export class UserService {
         Insurance_Coverage: ["state", "year", "name", "indicator"],
         Health_Outcomes: ["state", "year", "indicator"],
         NDHS: ["state", "year", "category", "indicator"],
-        Per_Capita: ["state", "year"], // only one per state/year
-        Admission_Quota: ["state", "year"], // only one per state/year
+        Per_Capita: ["state", "year"],
+        Admission_Quota: ["state", "year"],
+        Flagship_Project: ["state", "year"], // only one per state/year
+
     };
 
     async findAll() {
