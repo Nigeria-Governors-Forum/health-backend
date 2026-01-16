@@ -164,20 +164,20 @@ export class UserService {
                         await prismaModel.create({ data: sanitized });
                     } else {
                         // Compare full record
-                        // const isSame = Object.keys(sanitized).every(
-                        //     (key) => sanitized[key] === (existing as any)[key]
-                        // );
+                        const isSame = Object.keys(sanitized).every(
+                            (key) => sanitized[key] === (existing as any)[key]
+                        );
 
-                        // if (!isSame) {
-                        //     await prismaModel.updateMany({
-                        //         where,
-                        //         data: sanitized,
-                        //     });
-                        // }
-                        await prismaModel.update({
-                            where: { id: existing.id },
-                            data: sanitized,
-                        });
+                        if (!isSame) {
+                            await prismaModel.updateMany({
+                                where,
+                                data: sanitized,
+                            });
+                        }
+                        // await prismaModel.update({
+                        //     where: { id: existing.id },
+                        //     data: sanitized,
+                        // });
                     }
 
                     successCount++;
