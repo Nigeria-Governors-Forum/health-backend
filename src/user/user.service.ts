@@ -40,8 +40,11 @@ export class UserService {
         Health_Outcomes: ["state", "year", "indicator"],
         NDHS: ["state", "year", "category", "indicator"],
         Per_Capita: ["state", "year"],
-        Admission_Quota: ["state", "year"],
-        Flagship_Project: ["state", "year"], // only one per state/year
+
+        Admission_Quota: ["state", "year", "school", "faculty"],
+        Flagship_Project: ["state", "year", "project"], // only one per state/year
+        Presidential_Indicators: ["state", "year", "indicator"], // only one per state/year
+        LGA_Population: ["state", "year", "lga"], // only one per state/year
 
     };
 

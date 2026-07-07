@@ -104,12 +104,17 @@ export class HealthFacilitiesService {
         ? parseFloat(Number((totalHealth / data["total_population"]) * 10000).toFixed(0))
         : "N/A";
 
+    const lgaData = await this.prisma.demography_LGA.findMany({
+      where: { state, year: Number(year) }
+    });
+
     return {
       data: {
         h_facilities: grouped,
         health_facilities: totalHealth,
         per_person: perPerson,
-        service_provision: serviceProvision
+        service_provision: serviceProvision,
+        health_facilities_by_lga: lgaData
       },
     };
   }

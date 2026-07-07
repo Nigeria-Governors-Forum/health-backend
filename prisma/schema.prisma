@@ -118,6 +118,7 @@ model Access_Service_Utilization {
   indicator String?
   source    String?
   value     Float?
+  value_2   Float?
   target    Float?
 }
 
@@ -232,18 +233,17 @@ model LGA_Population {
   wards               Int?
   hard_To_Reach_Wards Int?
   hard_To_Reach       String?
-  nothing             String?
   health_Facilities   Int?
   density             Int?
 }
 
 model Flagship_Project {
-  id               Int     @id @default(autoincrement())
-  zone             String?
-  state            String?
-  year             Int?
-  flagship_Project String?
-  description      String?
+  id          Int     @id @default(autoincrement())
+  zone        String?
+  state       String?
+  year        Int?
+  project     String?
+  description String?
 }
 
 model Presidential_Indicators {
