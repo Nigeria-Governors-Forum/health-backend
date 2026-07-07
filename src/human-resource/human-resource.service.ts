@@ -71,12 +71,32 @@ export class HumanResourceService {
     );
     grouped.push(grandTotal);
 
+    const admissionQuota = await this.prisma.admission_Quota.findMany({
+      where: { state, year: Number(year) }
+    });
+
+    const groupedQuota = admissionQuota.reduce((acc: any, item) => {
+      const school = item.school?.trim();
+      if (!school) return acc;
+      if (!acc[school]) {
+        acc[school] = { institution: school, programs: [] };
+      }
+      acc[school].programs.push({
+        program: item.faculty,
+        quota: item.admission_quota
+      });
+      return acc;
+    }, {} as Record<string, { institution: string; programs: any[] }>);
+
+    const admissionQuotaList = Object.values(groupedQuota);
+
     return {
       data: {
         hRH_Professions: hRH_Professions.reduce((acc, cur) => acc + (Number(cur.number) || 0), 0),
         training_breakdown: grouped,
         hRH: hRH.reduce((acc, cur) => acc + (Number(cur?.value) || 0), 0),
         profession: hRH_Professions,
+        admission_quota: admissionQuotaList,
       },
     };
   }

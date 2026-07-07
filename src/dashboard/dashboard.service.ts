@@ -144,5 +144,14 @@ export class DashboardService {
     };
   }
 
+  async getFlagshipProjects(state: string, year: string) {
+    const projects = await this.prisma.flagship_Project.findMany({
+      where: {
+        state,
+        year: Number(year),
+      },
+    });
+    return { data: projects };
+  }
 }
 

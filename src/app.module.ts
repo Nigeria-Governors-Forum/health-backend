@@ -16,6 +16,7 @@ import { HumanResourceModule } from './human-resource/human-resource.module';
 import { HealthFacilitiesModule } from './health-facilities/health-facilities.module';
 import { ZonalHealthFacilitiesModule } from './zonal-health-facilities/zonal-health-facilities.module';
 import { ScorecardModule } from './scorecard/scorecard.module';
+import { ServiceCoverageModule } from './service-coverage/service-coverage.module';
 
 @Module({
   imports: [
@@ -30,7 +31,8 @@ import { ScorecardModule } from './scorecard/scorecard.module';
     HumanResourceModule,
     HealthFacilitiesModule,
     ZonalHealthFacilitiesModule,
-    ScorecardModule
+    ScorecardModule,
+    ServiceCoverageModule
   ],
   controllers: [AppController],
   providers: [AppService,

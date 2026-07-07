@@ -38,4 +38,9 @@ export class DashboardController {
     return this.dashboardService.getDashboardData(state, year);
   }
 
+  @Get('flagship/:state/:year')
+  getFlagshipProjects(@Param('state') state: string, @Param('year') year: string) {
+    return this.dashboardService.getFlagshipProjects(state, year);
+  }
+
 }

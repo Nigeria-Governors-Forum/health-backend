@@ -135,6 +135,25 @@ export class UserService {
             let successCount = 0;
 
             try {
+                const uniqueFields = this.uniqueKeys[sheetName];
+                if (!uniqueFields) {
+                    throw new Error(`No unique keys defined for sheet: ${sheetName}`);
+                }
+
+                // 1. Fetch all existing records for this model to build in-memory lookup map
+                const existingRecords = await prismaModel.findMany();
+                const existingMap = new Map<string, any>();
+                for (const rec of existingRecords) {
+                    const compositeKey = uniqueFields
+                        .map((f) => String(rec[f] ?? '').toLowerCase().trim())
+                        .join('|');
+                    existingMap.set(compositeKey, rec);
+                }
+
+                const toCreate: any[] = [];
+                const toUpdate: { where: any; data: any }[] = [];
+
+                // 2. Process rows in-memory
                 for (const row of sheetData) {
                     const sanitized: Record<string, any> = {};
                     for (const key of Object.keys(row)) {
@@ -147,43 +166,55 @@ export class UserService {
                             continue;
                         }
 
+                        // Map LGA_Population mixed-case schema columns
+                        if (sheetName === "LGA_Population") {
+                            if (fieldName === "hard_to_reach_wards") fieldName = "hard_To_Reach_Wards";
+                            if (fieldName === "hard_to_reach") fieldName = "hard_To_Reach";
+                            if (fieldName === "health_facilities") fieldName = "health_Facilities";
+                        }
+
                         sanitized[fieldName] = value;
                     }
 
-                    const uniqueFields = this.uniqueKeys[sheetName];
-                    if (!uniqueFields) {
-                        throw new Error(`No unique keys defined for sheet: ${sheetName}`);
-                    }
-
-                    const where: any = {};
-                    for (const field of uniqueFields) {
-                        where[field] = sanitized[field];
-                    }
-
-                    // Check if record exists
-                    const existing = await prismaModel.findFirst({ where });
+                    const compositeKey = uniqueFields
+                        .map((f) => String(sanitized[f] ?? '').toLowerCase().trim())
+                        .join('|');
+                    const existing = existingMap.get(compositeKey);
 
                     if (!existing) {
-                        await prismaModel.create({ data: sanitized });
+                        toCreate.push(sanitized);
                     } else {
-                        // Compare full record
+                        // Compare properties
                         const isSame = Object.keys(sanitized).every(
                             (key) => sanitized[key] === (existing as any)[key]
                         );
 
                         if (!isSame) {
-                            await prismaModel.updateMany({
-                                where,
-                                data: sanitized,
-                            });
+                            const where: any = {};
+                            for (const field of uniqueFields) {
+                                where[field] = sanitized[field];
+                            }
+                            toUpdate.push({ where, data: sanitized });
                         }
-                        // await prismaModel.update({
-                        //     where: { id: existing.id },
-                        //     data: sanitized,
-                        // });
                     }
-
                     successCount++;
+                }
+
+                // 3. Batch insert new entries
+                if (toCreate.length > 0) {
+                    await prismaModel.createMany({ data: toCreate });
+                    console.log(`   ➡️ Bulk created ${toCreate.length} rows`);
+                }
+
+                // 4. Batch update modified entries
+                if (toUpdate.length > 0) {
+                    for (const item of toUpdate) {
+                        await prismaModel.updateMany({
+                            where: item.where,
+                            data: item.data,
+                        });
+                    }
+                    console.log(`   ➡️ Bulk updated ${toUpdate.length} rows`);
                 }
 
                 console.log(`✅ ${sheetName}: ${successCount} rows processed`);
