@@ -6,6 +6,7 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './create-user.dto';
+import { UpdateUserDto } from './update-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import * as XLSX from 'xlsx';
 import { Observable, Subject } from 'rxjs';
@@ -68,14 +69,16 @@ export class UserService {
     });
   }
 
-  async update(id: string, data: CreateUserDto) {
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+  async update(id: string, data: UpdateUserDto) {
+    const updateData: any = { ...data };
+    if (data.password) {
+      updateData.password = await bcrypt.hash(data.password, 10);
+    } else {
+      delete updateData.password;
+    }
     return this.prisma.user.update({
       where: { id: Number(id) },
-      data: {
-        ...data,
-        password: hashedPassword,
-      },
+      data: updateData,
     });
   }
 
