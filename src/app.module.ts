@@ -32,10 +32,11 @@ import { ServiceCoverageModule } from './service-coverage/service-coverage.modul
     HealthFacilitiesModule,
     ZonalHealthFacilitiesModule,
     ScorecardModule,
-    ServiceCoverageModule
+    ServiceCoverageModule,
   ],
   controllers: [AppController],
-  providers: [AppService,
+  providers: [
+    AppService,
     // JwtService,
     // {
     //   provide: APP_GUARD,
@@ -44,6 +45,7 @@ import { ServiceCoverageModule } from './service-coverage/service-coverage.modul
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
-    }],
+    },
+  ],
 })
-export class AppModule { }
+export class AppModule {}

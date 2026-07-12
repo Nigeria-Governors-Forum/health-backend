@@ -15,8 +15,14 @@ export class ServiceCoverageService {
       if (r.indicator) {
         // Multiply by 100 to convert float rate (e.g. 0.45) to integer percentage (45%)
         indicators[r.indicator.trim()] = {
-          value: r.value !== null && r.value !== undefined ? Math.round(r.value * 100) : 0,
-          target: r.target !== null && r.target !== undefined ? Math.round(r.target * 100) : 0,
+          value:
+            r.value !== null && r.value !== undefined
+              ? Math.round(r.value * 100)
+              : 0,
+          target:
+            r.target !== null && r.target !== undefined
+              ? Math.round(r.target * 100)
+              : 0,
         };
       }
     });
@@ -42,7 +48,10 @@ export class ServiceCoverageService {
     const statesList = zonalRows
       .map((r) => ({
         label: r.state || '',
-        value: r.value !== null && r.value !== undefined ? Math.round(r.value * 100) : 0,
+        value:
+          r.value !== null && r.value !== undefined
+            ? Math.round(r.value * 100)
+            : 0,
       }))
       .filter((item) => item.label !== '');
 
@@ -59,7 +68,10 @@ export class ServiceCoverageService {
       if (r.state) {
         // Normalize state name to match frontend slugs (e.g. "Cross River" -> "cross-river")
         const slug = r.state.toLowerCase().trim().replace(/\s+/g, '-');
-        nationalData[slug] = r.value !== null && r.value !== undefined ? Math.round(r.value * 100) : 0;
+        nationalData[slug] =
+          r.value !== null && r.value !== undefined
+            ? Math.round(r.value * 100)
+            : 0;
       }
     });
 
@@ -75,7 +87,10 @@ export class ServiceCoverageService {
 
     const trend = trendRows.map((r) => ({
       year: r.year,
-      value: r.value !== null && r.value !== undefined ? Math.round(r.value * 100) : 0,
+      value:
+        r.value !== null && r.value !== undefined
+          ? Math.round(r.value * 100)
+          : 0,
     }));
 
     return {

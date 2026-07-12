@@ -1,11 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { DemographyService } from './demography.service';
 import { CreateDemographyDto } from './dto/create-demography.dto';
 import { UpdateDemographyDto } from './dto/update-demography.dto';
 
 @Controller('demography')
 export class DemographyController {
-  constructor(private readonly demographyService: DemographyService) { }
+  constructor(private readonly demographyService: DemographyService) {}
 
   @Post()
   create(@Body() createDemographyDto: CreateDemographyDto) {
@@ -23,7 +31,10 @@ export class DemographyController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDemographyDto: UpdateDemographyDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateDemographyDto: UpdateDemographyDto,
+  ) {
     return this.demographyService.update(+id, updateDemographyDto);
   }
 
@@ -33,7 +44,10 @@ export class DemographyController {
   }
 
   @Get(':state/:year')
-  getDemographyData(@Param('state') state: string, @Param('year') year: string) {
+  getDemographyData(
+    @Param('state') state: string,
+    @Param('year') year: string,
+  ) {
     console.log(state, year);
     return this.demographyService.getDemographyData(state, year);
   }

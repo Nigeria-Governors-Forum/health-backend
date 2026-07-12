@@ -11,7 +11,9 @@ describe('ZonalHealthFinanceController', () => {
       providers: [ZonalHealthFinanceService],
     }).compile();
 
-    controller = module.get<ZonalHealthFinanceController>(ZonalHealthFinanceController);
+    controller = module.get<ZonalHealthFinanceController>(
+      ZonalHealthFinanceController,
+    );
   });
 
   it('should be defined', () => {

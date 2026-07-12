@@ -8,7 +8,8 @@ import { JwtModule } from '@nestjs/jwt';
 @Module({
   controllers: [ScorecardController],
   providers: [ScorecardService],
-  imports: [PrismaModule,
+  imports: [
+    PrismaModule,
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,
@@ -16,4 +17,4 @@ import { JwtModule } from '@nestjs/jwt';
     }),
   ],
 })
-export class ScorecardModule { }
+export class ScorecardModule {}

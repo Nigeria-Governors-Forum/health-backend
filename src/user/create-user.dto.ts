@@ -14,7 +14,7 @@ export class CreateUserDto {
 
   @IsString()
   role: string;
-  
+
   @IsString()
   state: string;
 }

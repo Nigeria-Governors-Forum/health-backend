@@ -3,14 +3,19 @@ import { ServiceCoverageService } from './service-coverage.service';
 
 @Controller('service-coverage')
 export class ServiceCoverageController {
-  constructor(private readonly serviceCoverageService: ServiceCoverageService) {}
+  constructor(
+    private readonly serviceCoverageService: ServiceCoverageService,
+  ) {}
 
   @Get(':state/:year')
   getServiceCoverageData(
     @Param('state') state: string,
     @Param('year') year: string,
   ) {
-    return this.serviceCoverageService.getServiceCoverageData(state, Number(year));
+    return this.serviceCoverageService.getServiceCoverageData(
+      state,
+      Number(year),
+    );
   }
 
   @Get('zonal/:zone/:state/:year')

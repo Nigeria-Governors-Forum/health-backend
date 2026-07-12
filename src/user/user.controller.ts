@@ -1,7 +1,23 @@
-import { Body, Controller, Get, Post, Param, UseGuards, Put, Delete, ParseIntPipe, BadRequestException, HttpStatus, UploadedFile, UseInterceptors, Sse } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Param,
+  UseGuards,
+  Put,
+  Delete,
+  ParseIntPipe,
+  BadRequestException,
+  HttpStatus,
+  UploadedFile,
+  UseInterceptors,
+  Sse,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './create-user.dto';
 import { LoginDto } from './login.dto';
+import { ResetPasswordDto } from './reset-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Roles } from './roles.decorator';
 import { RolesGuard } from './roles.guard';
@@ -10,10 +26,9 @@ import * as XLSX from 'xlsx';
 import { Express } from 'express';
 import { interval, map, Observable, take } from 'rxjs';
 
-
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService) {}
 
   @Get()
   @UseGuards(JwtAuthGuard)
@@ -43,10 +58,20 @@ export class UserController {
 
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
-    const user = await this.userService.validateUser(loginDto.email, loginDto.password);
+    const user = await this.userService.validateUser(
+      loginDto.email,
+      loginDto.password,
+    );
     return this.userService.login(user);
   }
 
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.userService.resetPassword(
+      resetPasswordDto.email,
+      resetPasswordDto.newPassword,
+    );
+  }
 
   @Post('data/:year')
   // @UseGuards(JwtAuthGuard, RolesGuard)
@@ -55,13 +80,11 @@ export class UserController {
   async uploadDataForYear(
     @Param('year', ParseIntPipe) year: number,
     @UploadedFile() file: Express.Multer.File,
-  ) {    
+  ) {
     try {
       // Validate year
       if (year < 2000) {
-        throw new BadRequestException(
-          'Year must be 2000 or higher',
-        );
+        throw new BadRequestException('Year must be 2000 or higher');
       }
 
       if (!file) {
@@ -78,9 +101,7 @@ export class UserController {
       const workbook = XLSX.read(file.buffer, { type: 'buffer' });
 
       // Call service and pass workbook directly
-      const result = await this.userService.uploadFromWorkbook(
-        workbook,
-      );
+      const result = await this.userService.uploadFromWorkbook(workbook);
 
       return {
         statusCode: HttpStatus.OK,
@@ -95,7 +116,6 @@ export class UserController {
     }
   }
 
-
   @Sse('progress/details')
   progress(): Observable<any> {
     return this.userService.getProgressStream().pipe(
@@ -104,5 +124,4 @@ export class UserController {
       })),
     );
   }
-
 }

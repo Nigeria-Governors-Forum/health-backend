@@ -1,11 +1,21 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { HealthFacilitiesService } from './health-facilities.service';
 import { CreateHealthFacilityDto } from './dto/create-health-facility.dto';
 import { UpdateHealthFacilityDto } from './dto/update-health-facility.dto';
 
 @Controller('health-facilities')
 export class HealthFacilitiesController {
-  constructor(private readonly healthFacilitiesService: HealthFacilitiesService) { }
+  constructor(
+    private readonly healthFacilitiesService: HealthFacilitiesService,
+  ) {}
 
   @Post()
   create(@Body() createHealthFacilityDto: CreateHealthFacilityDto) {
@@ -23,7 +33,10 @@ export class HealthFacilitiesController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateHealthFacilityDto: UpdateHealthFacilityDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateHealthFacilityDto: UpdateHealthFacilityDto,
+  ) {
     return this.healthFacilitiesService.update(+id, updateHealthFacilityDto);
   }
 
@@ -33,12 +46,19 @@ export class HealthFacilitiesController {
   }
 
   @Get(':state/:year')
-  getHealthFacilityData(@Param('state') state: string, @Param('year') year: string) {
+  getHealthFacilityData(
+    @Param('state') state: string,
+    @Param('year') year: string,
+  ) {
     return this.healthFacilitiesService.getHealthFacilityData(state, year);
   }
 
   @Get('zonal/:zone/:state/:year')
-  getZonalHealthFacilityData(@Param('zone') zone: string, @Param('state') state: string, @Param('year') year: string) {
+  getZonalHealthFacilityData(
+    @Param('zone') zone: string,
+    @Param('state') state: string,
+    @Param('year') year: string,
+  ) {
     return this.healthFacilitiesService.getZonalHealthFacilityData(zone, year);
   }
 }

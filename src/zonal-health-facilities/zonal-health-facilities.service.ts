@@ -16,7 +16,10 @@ export class ZonalHealthFacilitiesService {
     return `This action returns a #${id} zonalHealthFacility`;
   }
 
-  update(id: number, updateZonalHealthFacilityDto: UpdateZonalHealthFacilityDto) {
+  update(
+    id: number,
+    updateZonalHealthFacilityDto: UpdateZonalHealthFacilityDto,
+  ) {
     return `This action updates a #${id} zonalHealthFacility`;
   }
 

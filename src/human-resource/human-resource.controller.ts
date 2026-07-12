@@ -1,11 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { HumanResourceService } from './human-resource.service';
 import { CreateHumanResourceDto } from './dto/create-human-resource.dto';
 import { UpdateHumanResourceDto } from './dto/update-human-resource.dto';
 
 @Controller('human-resource')
 export class HumanResourceController {
-  constructor(private readonly humanResourceService: HumanResourceService) { }
+  constructor(private readonly humanResourceService: HumanResourceService) {}
 
   @Post()
   create(@Body() createHumanResourceDto: CreateHumanResourceDto) {
@@ -23,7 +31,10 @@ export class HumanResourceController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateHumanResourceDto: UpdateHumanResourceDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateHumanResourceDto: UpdateHumanResourceDto,
+  ) {
     return this.humanResourceService.update(+id, updateHumanResourceDto);
   }
 
@@ -31,7 +42,6 @@ export class HumanResourceController {
   remove(@Param('id') id: string) {
     return this.humanResourceService.remove(+id);
   }
-
 
   @Get(':state/:year')
   getDashboardData(@Param('state') state: string, @Param('year') year: string) {
