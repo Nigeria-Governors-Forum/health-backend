@@ -4,12 +4,65 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './create-user.dto';
 import { UpdateUserDto } from './update-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import * as XLSX from 'xlsx';
 import { Observable, Subject } from 'rxjs';
+
+function parseNumericValue(val: any): number | null {
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'number') {
+    return isNaN(val) ? null : Math.round(val);
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (
+      !trimmed ||
+      trimmed === '-' ||
+      trimmed === 'N/A' ||
+      trimmed.toLowerCase() === 'null'
+    ) {
+      return null;
+    }
+    const num = parseFloat(trimmed);
+    return isNaN(num) ? null : Math.round(num);
+  }
+  return null;
+}
+
+function getPrismaModel(prisma: any, name: string): any {
+  const norm = name.trim().replace(/\s+/g, '_').toLowerCase();
+  if (norm === 'demography_lga') {
+    return prisma.demography_LGA;
+  }
+  const proto = Object.getPrototypeOf(prisma);
+  const keys = [...Object.keys(prisma), ...Object.getOwnPropertyNames(proto)];
+  for (const k of keys) {
+    if (k.toLowerCase() === norm) return prisma[k];
+  }
+  return prisma[norm] || prisma[name];
+}
+
+function parseYearCreated(val: any): number | null {
+  if (val === null || val === undefined || val === '') return null;
+  if (typeof val === 'number') {
+    if (val > 10000) {
+      const date = new Date((val - 25569) * 86400 * 1000);
+      return date.getFullYear();
+    }
+    return val;
+  }
+  const str = String(val).trim();
+  const match = str.match(/\b(19\d\d|20\d\d)\b/);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+  const num = parseInt(str, 10);
+  return isNaN(num) ? null : num;
+}
 
 function excelDateToYear(excelDate: number): number {
   const date = new Date((excelDate - 25569) * 86400 * 1000);
@@ -20,12 +73,12 @@ export class UserService {
   constructor(
     private readonly prisma: PrismaService,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   private progress$ = new Subject<{ message: string; percent: number }>();
 
   private uniqueKeys: Record<string, string[]> = {
-    Demography: ['state', 'year', 'indicator'],
+    Demography: ['state', 'year', 'indicator', 'category_1', 'category_2'],
     Demography_LGA: ['state', 'lga', 'year'],
     Access_Service_Utilization: ['state', 'year', 'indicator'],
     HFin_1: ['state', 'year', 'indicator', 'exp_type', 'status'],
@@ -147,22 +200,31 @@ export class UserService {
       );
       if (!sheetData.length) continue;
 
-      const modelName =
-        sheetName.charAt(0).toLowerCase() +
-        sheetName.slice(1).replace(/\s+/g, '_');
+      let canonicalSheetKey = sheetName.trim().replace(/\s+/g, '_');
+      if (
+        canonicalSheetKey.toLowerCase() === 'demography_lga'
+      ) {
+        canonicalSheetKey = 'Demography_LGA';
+      }
 
-      const prismaModel = (this.prisma as any)[modelName];
+      const prismaModel = getPrismaModel(this.prisma, canonicalSheetKey);
       if (!prismaModel) {
         console.warn(`⚠️ Skipping ${sheetName} — not found in Prisma client`);
         continue;
       }
 
-      console.log(`📂 Processing ${sheetName} ...`);
+      console.log(`📂 Processing ${sheetName} (${canonicalSheetKey}) ...`);
+
+      const modelFields = (Prisma as any).dmmf?.datamodel?.models?.find(
+        (m: any) => m.name.toLowerCase() === canonicalSheetKey.toLowerCase(),
+      )?.fields.map((f: any) => f.name);
+      const validFieldsSet = modelFields ? new Set(modelFields) : null;
 
       let successCount = 0;
 
       try {
-        const uniqueFields = this.uniqueKeys[sheetName];
+        const uniqueFields =
+          this.uniqueKeys[canonicalSheetKey] || this.uniqueKeys[sheetName];
         if (!uniqueFields) {
           throw new Error(`No unique keys defined for sheet: ${sheetName}`);
         }
@@ -189,13 +251,48 @@ export class UserService {
           const sanitized: Record<string, any> = {};
           for (const key of Object.keys(row)) {
             let fieldName = key.replace(/\s+/g, '_').toLowerCase();
-            const value = row[key];
+            let value = row[key];
+
+            // Normalize state strings
+            if (fieldName === 'state' && value !== undefined && value !== null) {
+              value = String(value).trim();
+              if (
+                value === 'FCT-Abuja' ||
+                value === 'Federal Capital Territory'
+              ) {
+                value = 'FCT';
+              }
+            }
+
+            // Normalize year numbers
+            if (fieldName === 'year' && value !== undefined && value !== null) {
+              const parsedYr = parseInt(String(value), 10);
+              value = isNaN(parsedYr) ? null : parsedYr;
+            }
 
             // Date handling
             if (fieldName === 'period' && value) {
               sanitized.year = excelDateToYear(value);
               continue;
             }
+
+            // Parse numeric fields safely for integers and floats across all models
+            if (
+              fieldName === 'lga_population' ||
+              fieldName === 'number_of_wards' ||
+              fieldName === 'health_facilities' ||
+              fieldName === 'value'
+            ) {
+              const ind = row['Indicator'] || row['indicator'];
+              if (ind === 'Year Created') {
+                value = parseYearCreated(value);
+              } else {
+                value = parseNumericValue(value);
+              }
+            }
+
+            // Map section column to page field
+            if (fieldName === 'section') fieldName = 'page';
 
             // Map LGA_Population mixed-case schema columns
             if (sheetName === 'LGA_Population') {
@@ -207,6 +304,24 @@ export class UserService {
             }
 
             sanitized[fieldName] = value;
+          }
+
+          if (validFieldsSet) {
+            for (const key of Object.keys(sanitized)) {
+              if (!validFieldsSet.has(key)) {
+                delete sanitized[key];
+              }
+            }
+          }
+
+          if (
+            sanitized.year === null ||
+            sanitized.year === undefined ||
+            isNaN(sanitized.year) ||
+            sanitized.year < 1900 ||
+            sanitized.year > 2100
+          ) {
+            continue;
           }
 
           const compositeKey = uniqueFields
@@ -227,11 +342,7 @@ export class UserService {
             );
 
             if (!isSame) {
-              const where: any = {};
-              for (const field of uniqueFields) {
-                where[field] = sanitized[field];
-              }
-              toUpdate.push({ where, data: sanitized });
+              toUpdate.push({ where: { id: existing.id }, data: sanitized });
             }
           }
           successCount++;
@@ -246,7 +357,7 @@ export class UserService {
         // 4. Batch update modified entries
         if (toUpdate.length > 0) {
           for (const item of toUpdate) {
-            await prismaModel.updateMany({
+            await prismaModel.update({
               where: item.where,
               data: item.data,
             });
