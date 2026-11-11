@@ -40,15 +40,15 @@ export class DashboardService {
       if (key) data[key] = row.value;
     });
 
-    const hFacilities = await this.prisma.hFcilities.findMany({
+    const hFacilities = await this.prisma.health_Facilities.findMany({
       where: { state, year: Number(year) },
     });
 
-    const hRH_Professions = await this.prisma.hRH_Professions.findMany({
+    const HRH = await this.prisma.hRH.findMany({
       where: { state, year: Number(year) },
     });
 
-    const hRH = await this.prisma.hRH.findMany({
+    const hRH = await this.prisma.health_Training_Institutions.findMany({
       where: { state, year: Number(year) },
     });
 
@@ -73,10 +73,10 @@ export class DashboardService {
     });
 
     const hardToReachLGAs = demography_LGA
-      .filter((item) => item.hard_to_reach_lgas === 'Yes')
+      .filter((item) => Number(item.hard_to_reach_wards ?? 0) > 0)
       .map((item) => ({
         lga: item.lga,
-        hard_to_reach: item.hard_to_reach_lgas,
+        hard_to_reach: item.hard_to_reach_wards,
       }));
 
     const totalHardToReach = hardToReachLGAs.length;
@@ -148,8 +148,8 @@ export class DashboardService {
             : null,
         partners_mapping: uniquePartners.length,
         hRH: hRH.reduce((acc, cur) => acc + (Number(cur?.value) || 0), 0),
-        hRH_Professions: hRH_Professions.reduce(
-          (acc, cur) => acc + (Number(cur.number) || 0),
+        HRH: HRH.reduce(
+          (acc, cur) => acc + (Number(cur.values ?? 0) || 0),
           0,
         ),
         graph_data: result,

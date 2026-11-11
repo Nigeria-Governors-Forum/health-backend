@@ -12,10 +12,10 @@ import { JwtService } from '@nestjs/jwt';
 import * as XLSX from 'xlsx';
 import { Observable, Subject } from 'rxjs';
 
-function parseNumericValue(val: any): number | null {
+function parseNumericValue(val: any, isFloat = false): number | null {
   if (val === null || val === undefined) return null;
   if (typeof val === 'number') {
-    return isNaN(val) ? null : Math.round(val);
+    return isNaN(val) ? null : isFloat ? val : Math.round(val);
   }
   if (typeof val === 'string') {
     const trimmed = val.trim();
@@ -23,12 +23,13 @@ function parseNumericValue(val: any): number | null {
       !trimmed ||
       trimmed === '-' ||
       trimmed === 'N/A' ||
-      trimmed.toLowerCase() === 'null'
+      trimmed.toLowerCase() === 'null' ||
+      trimmed.toLowerCase() === 'no data'
     ) {
       return null;
     }
     const num = parseFloat(trimmed);
-    return isNaN(num) ? null : Math.round(num);
+    return isNaN(num) ? null : isFloat ? num : Math.round(num);
   }
   return null;
 }
@@ -37,6 +38,19 @@ function getPrismaModel(prisma: any, name: string): any {
   const norm = name.trim().replace(/\s+/g, '_').toLowerCase();
   if (norm === 'demography_lga') {
     return prisma.demography_LGA;
+  }
+  if (norm === 'hfcilities' || norm === 'health_facilities') {
+    return prisma.health_Facilities;
+  }
+  if (
+    norm === 'hfcilities_service_provision' ||
+    norm === 'health_fac_service_provision' ||
+    norm === 'health_facilities_service_provision'
+  ) {
+    return prisma.health_Fac_Service_Provision;
+  }
+  if (norm === 'hrh' || norm === 'health_training_institutions') {
+    return prisma.health_Training_Institutions;
   }
   const proto = Object.getPrototypeOf(prisma);
   const keys = [...Object.keys(prisma), ...Object.getOwnPropertyNames(proto)];
@@ -81,7 +95,7 @@ export class UserService {
     Demography: ['state', 'year', 'indicator', 'category_1', 'category_2'],
     Demography_LGA: ['state', 'lga', 'year'],
     Access_Service_Utilization: ['state', 'year', 'indicator'],
-    HFin_1: ['state', 'year', 'indicator', 'exp_type', 'status'],
+    HFin: ['state', 'year', 'indicator', 'exp_type', 'status'],
     HFin_2: ['state', 'year', 'indicator', 'exp_type', 'status'],
     LGA_Fin: ['state', 'lga', 'year', 'indicator', 'exp_type', 'status'],
     LGA_PCap: ['state', 'lga', 'year'],
@@ -93,9 +107,12 @@ export class UserService {
       'intervention_group_correct',
     ],
     HFcilities: ['state', 'year', 'indicator', 'level', 'ownership'],
+    Health_Facilities: ['state', 'year', 'indicator', 'level', 'ownership'],
     HFcilities_Service_Provision: ['state', 'year', 'service_provision'],
+    Health_Fac_Service_Provision: ['state', 'year', 'service_provision'],
+    Health_Facilities_Service_Provision: ['state', 'year', 'service_provision'],
     HRH: ['state', 'year', 'institution', 'ownership'],
-    HRH_Professions: ['state', 'year', 'institution'],
+    Health_Training_Institutions: ['state', 'year', 'institution', 'ownership'],
     Insurance_Coverage: ['state', 'year', 'name', 'indicator'],
     Health_Outcomes: ['state', 'year', 'indicator'],
     NDHS: ['state', 'year', 'category', 'indicator'],
@@ -184,12 +201,21 @@ export class UserService {
   async uploadFromWorkbook(workbook: XLSX.WorkBook) {
     const totalSheets = workbook.SheetNames.length;
     let processedSheets = 0;
+    const sheetReports: Array<{
+      sheetName: string;
+      canonicalKey: string;
+      status: 'SUCCESS' | 'WARNING' | 'FAILED' | 'SKIPPED';
+      totalRows: number;
+      createdRows: number;
+      updatedRows: number;
+      skippedRows: number;
+      issues: string[];
+    }> = [];
 
     for (const sheetName of workbook.SheetNames) {
       processedSheets++;
       const percent = Math.round((processedSheets / totalSheets) * 100);
 
-      // 👇 emit progress update
       this.progress$.next({
         message: `📂 Processing ${sheetName} out of ${totalSheets} ...`,
         percent,
@@ -198,18 +224,51 @@ export class UserService {
       const sheetData = XLSX.utils.sheet_to_json<Record<string, any>>(
         workbook.Sheets[sheetName],
       );
-      if (!sheetData.length) continue;
 
       let canonicalSheetKey = sheetName.trim().replace(/\s+/g, '_');
-      if (
-        canonicalSheetKey.toLowerCase() === 'demography_lga'
-      ) {
-        canonicalSheetKey = 'Demography_LGA';
+      const normLower = canonicalSheetKey.toLowerCase();
+      if (normLower === 'demography_lga') canonicalSheetKey = 'Demography_LGA';
+      else if (normLower === 'hfcilities' || normLower === 'health_facilities')
+        canonicalSheetKey = 'Health_Facilities';
+      else if (
+        normLower === 'hfcilities_service_provision' ||
+        normLower === 'health_fac_service_provision' ||
+        normLower === 'health_facilities_service_provision'
+      )
+        canonicalSheetKey = 'Health_Fac_Service_Provision';
+      else if (
+        normLower === 'hrh' ||
+        normLower === 'health_training_institutions'
+      )
+        canonicalSheetKey = 'Health_Training_Institutions';
+
+      if (!sheetData.length) {
+        sheetReports.push({
+          sheetName,
+          canonicalKey: canonicalSheetKey,
+          status: 'SKIPPED',
+          totalRows: 0,
+          createdRows: 0,
+          updatedRows: 0,
+          skippedRows: 0,
+          issues: ['Sheet is empty'],
+        });
+        continue;
       }
 
       const prismaModel = getPrismaModel(this.prisma, canonicalSheetKey);
       if (!prismaModel) {
         console.warn(`⚠️ Skipping ${sheetName} — not found in Prisma client`);
+        sheetReports.push({
+          sheetName,
+          canonicalKey: canonicalSheetKey,
+          status: 'SKIPPED',
+          totalRows: sheetData.length,
+          createdRows: 0,
+          updatedRows: 0,
+          skippedRows: sheetData.length,
+          issues: [`No matching Prisma database model found for sheet: ${sheetName}`],
+        });
         continue;
       }
 
@@ -221,6 +280,8 @@ export class UserService {
       const validFieldsSet = modelFields ? new Set(modelFields) : null;
 
       let successCount = 0;
+      let skippedCount = 0;
+      const issues: string[] = [];
 
       try {
         const uniqueFields =
@@ -229,7 +290,7 @@ export class UserService {
           throw new Error(`No unique keys defined for sheet: ${sheetName}`);
         }
 
-        // 1. Fetch all existing records for this model to build in-memory lookup map
+        // 1. Fetch existing records to build in-memory lookup map
         const existingRecords = await prismaModel.findMany();
         const existingMap = new Map<string, any>();
         for (const rec of existingRecords) {
@@ -281,18 +342,52 @@ export class UserService {
               fieldName === 'lga_population' ||
               fieldName === 'number_of_wards' ||
               fieldName === 'health_facilities' ||
-              fieldName === 'value'
+              fieldName === 'value' ||
+              fieldName === 'number' ||
+              fieldName === 'percentage'
             ) {
               const ind = row['Indicator'] || row['indicator'];
               if (ind === 'Year Created') {
                 value = parseYearCreated(value);
               } else {
-                value = parseNumericValue(value);
+                const isFloat =
+                  fieldName === 'lga_population' || fieldName === 'percentage';
+                value = parseNumericValue(value, isFloat);
               }
             }
 
             // Map section column to page field
             if (fieldName === 'section') fieldName = 'page';
+
+            // Map Demography_LGA column variants
+            if (canonicalSheetKey === 'Demography_LGA') {
+              if (
+                fieldName === 'hard_to_reach_colour' ||
+                fieldName === 'hard_to_reach_lga' ||
+                fieldName === 'hard_to_reach'
+              ) {
+                fieldName = 'hard_to_reach_wards';
+              }
+            }
+
+            // Map Health_Fac_Service_Provision fallback when indicator is placed in Page column
+            if (canonicalSheetKey === 'Health_Fac_Service_Provision') {
+              if (!sanitized.service_provision && (row['Page'] || row['page'] || row['Section'] || row['section'])) {
+                sanitized.service_provision = String(row['Page'] || row['page'] || row['Section'] || row['section']).trim();
+              }
+            }
+
+            // Map Health_Training_Institutions indicator column to institution
+            if (canonicalSheetKey === 'Health_Training_Institutions') {
+              if (
+                !sanitized.institution &&
+                (row['Indicator'] || row['indicator'] || row['Institution'] || row['institution'])
+              ) {
+                sanitized.institution = String(
+                  row['Indicator'] || row['indicator'] || row['Institution'] || row['institution']
+                ).trim();
+              }
+            }
 
             // Map LGA_Population mixed-case schema columns
             if (sheetName === 'LGA_Population') {
@@ -321,6 +416,7 @@ export class UserService {
             sanitized.year < 1900 ||
             sanitized.year > 2100
           ) {
+            skippedCount++;
             continue;
           }
 
@@ -336,10 +432,18 @@ export class UserService {
           if (!existing) {
             toCreate.push(sanitized);
           } else {
-            // Compare properties
-            const isSame = Object.keys(sanitized).every(
-              (key) => sanitized[key] === existing[key],
-            );
+            // Compare properties safely (ignoring empty vs null mismatches)
+            const isSame = Object.keys(sanitized).every((key) => {
+              const sVal = sanitized[key];
+              const eVal = existing[key];
+              if (
+                (sVal === undefined || sVal === null || sVal === '') &&
+                (eVal === undefined || eVal === null || eVal === '')
+              ) {
+                return true;
+              }
+              return String(sVal ?? '').trim() === String(eVal ?? '').trim();
+            });
 
             if (!isSame) {
               toUpdate.push({ where: { id: existing.id }, data: sanitized });
@@ -354,33 +458,58 @@ export class UserService {
           console.log(`   ➡️ Bulk created ${toCreate.length} rows`);
         }
 
-        // 4. Batch update modified entries
+        // 4. Batch update modified entries safely in chunks of 10
         if (toUpdate.length > 0) {
-          for (const item of toUpdate) {
-            await prismaModel.update({
-              where: item.where,
-              data: item.data,
-            });
+          const chunkSize = 10;
+          for (let i = 0; i < toUpdate.length; i += chunkSize) {
+            const chunk = toUpdate.slice(i, i + chunkSize);
+            await Promise.all(
+              chunk.map((item) =>
+                prismaModel.update({
+                  where: item.where,
+                  data: item.data,
+                }),
+              ),
+            );
           }
           console.log(`   ➡️ Bulk updated ${toUpdate.length} rows`);
         }
 
+        if (skippedCount > 0) {
+          issues.push(`${skippedCount} rows skipped due to invalid/missing year`);
+        }
+
         console.log(`✅ ${sheetName}: ${successCount} rows processed`);
+        sheetReports.push({
+          sheetName,
+          canonicalKey: canonicalSheetKey,
+          status: issues.length > 0 ? 'WARNING' : 'SUCCESS',
+          totalRows: sheetData.length,
+          createdRows: toCreate.length,
+          updatedRows: toUpdate.length,
+          skippedRows: skippedCount,
+          issues,
+        });
       } catch (err: any) {
-        console.error(`❌ Stopping at ${sheetName}: ${err.message}`);
+        console.error(`❌ Error processing ${sheetName}: ${err.message}`);
+        issues.push(`Error: ${err.message}`);
+        sheetReports.push({
+          sheetName,
+          canonicalKey: canonicalSheetKey,
+          status: 'FAILED',
+          totalRows: sheetData.length,
+          createdRows: 0,
+          updatedRows: 0,
+          skippedRows: sheetData.length,
+          issues,
+        });
         this.progress$.next({
-          message: `❌ Upload stopped at ${sheetName}: ${err.message}`,
+          message: `❌ Upload issue in ${sheetName}: ${err.message}`,
           percent,
         });
-        return {
-          success: false,
-          message: `Upload stopped. Fix issues in sheet: ${sheetName}`,
-          error: err.message,
-        };
       }
     }
 
-    // 👇 emit final completion AFTER all sheets
     this.progress$.next({
       message: `✅ Upload completed successfully`,
       percent: 100,
@@ -388,7 +517,11 @@ export class UserService {
 
     this.progress$.complete();
 
-    return { success: true, message: 'Upload completed successfully' };
+    return {
+      success: true,
+      message: 'Upload completed successfully',
+      sheetReports,
+    };
   }
 
   getProgressStream(): Observable<{ message: string; percent: number }> {

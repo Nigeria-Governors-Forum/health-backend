@@ -45,15 +45,15 @@ export class DemographyService {
     });
 
     const hardToReachLGAs = demography_LGA
-      .filter((item) => item.hard_to_reach_lgas === 'Yes')
+      .filter((item) => Number(item.hard_to_reach_wards ?? 0) > 0)
       .map((item) => ({
         lga: item.lga,
-        hard_to_reach: item.hard_to_reach_lgas,
+        hard_to_reach: item.hard_to_reach_wards,
       }));
 
     const totalHardToReach = hardToReachLGAs.length;
 
-    const hFacilities = await this.prisma.hFcilities.findMany({
+    const hFacilities = await this.prisma.health_Facilities.findMany({
       where: { state, year: Number(year) },
     });
     const totals = hFacilities.reduce(

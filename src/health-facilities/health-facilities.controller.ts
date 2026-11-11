@@ -59,6 +59,22 @@ export class HealthFacilitiesController {
     @Param('state') state: string,
     @Param('year') year: string,
   ) {
-    return this.healthFacilitiesService.getZonalHealthFacilityData(zone, year);
+    return this.healthFacilitiesService.getZonalHealthFacilityData(
+      zone,
+      year,
+      state,
+    );
+  }
+
+  @Get('zonal/:zone/:state')
+  getZonalHealthFacilityDataWithoutYear(
+    @Param('zone') zone: string,
+    @Param('state') state: string,
+  ) {
+    return this.healthFacilitiesService.getZonalHealthFacilityData(
+      zone,
+      undefined,
+      state,
+    );
   }
 }

@@ -135,7 +135,13 @@ async function seedDemography() {
       const rawPop = r.LGA_Population ?? r.lga_population;
       const rawWards = r.Number_of_Wards ?? r.number_of_wards;
       const rawFacilities = r.Health_Facilities ?? r.health_facilities;
-      const rawHard = r.Hard_to_Reach_LGAs ?? r.hard_to_reach_lgas;
+      const rawHard =
+        r.hard_to_reach_wards ??
+        r.hard_to_reach_wards ??
+        r.Hard_to_Reach_Colour ??
+        r.hard_to_reach_colour ??
+        r.Hard_to_Reach ??
+        r.hard_to_reach;
 
       lgaRecords.push({
         zone: r.Zone || r.zone ? String(r.Zone || r.zone).trim() : null,
@@ -151,7 +157,7 @@ async function seedDemography() {
           rawWards !== undefined && rawWards !== null && rawWards !== ''
             ? parseInt(rawWards, 10)
             : null,
-        hard_to_reach_lgas: rawHard ? String(rawHard).trim() : 'No',
+        hard_to_reach_wards: rawHard ? String(rawHard).trim() : 'No',
         health_facilities:
           rawFacilities !== undefined &&
           rawFacilities !== null &&

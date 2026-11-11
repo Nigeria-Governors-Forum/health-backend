@@ -51,20 +51,20 @@ export class HealthFinanceService {
   async getHealthFinanceData(state: string, year: string) {
     const yearNum = Number(year);
 
-    const hFin = await this.prisma.hFin_2.findMany({
+    const hFin = await this.prisma.hFin.findMany({
       where: {
-        state,
+        state: { equals: state, mode: 'insensitive' },
         year: { gte: yearNum - 2, lte: yearNum },
       },
     });
 
     const formatYearlyData = (rows: typeof hFin, y: number) => {
       const budgeted = rows
-        .filter((r) => r.year === y && r.status === 'Budgeted')
+        .filter((r) => r.year === y && r.category === 'Budgeted')
         .reduce((sum, r) => sum + (r.value || 0), 0);
 
       const actual = rows
-        .filter((r) => r.year === y && r.status === 'Actual')
+        .filter((r) => r.year === y && r.category === 'Actual')
         .reduce((sum, r) => sum + (r.value || 0), 0);
 
       return { name: y.toString(), budgeted, actual };
@@ -80,7 +80,7 @@ export class HealthFinanceService {
       const rows = hFin.filter(
         (d) =>
           d.indicator === indicator &&
-          d.status === condition &&
+          d.category === condition &&
           d.year === yearNum,
       );
 
@@ -120,12 +120,16 @@ export class HealthFinanceService {
     const healthBudget = summarizeIndicator('Health Budget', 'Budgeted');
     const stateBudget = summarizeIndicator('State Budget', 'Budgeted');
 
-    const perCapita = await this.prisma.lGA_PCap.findMany({
-      where: { state, year: Number(year) },
+    const perCapita = await this.prisma.lGA_Per_Capita.findMany({
+      where: { state: { equals: state, mode: 'insensitive' }, year: yearNum },
     });
 
-    const expenditure = await this.prisma.per_Capita.findMany({
-      where: { state, year: Number(year) },
+    const expenditure = await this.prisma.hFin.findMany({
+      where: {
+        state: { equals: state, mode: 'insensitive' },
+        year: yearNum,
+        category: 'Actual',
+      },
     });
 
     return {
@@ -142,14 +146,12 @@ export class HealthFinanceService {
   async getZonalHealthFinanceData(zone: string, year: string) {
     const yearNum = Number(year);
 
-    // 1) Load all rows for the zone + year
-    const hFin = await this.prisma.hFin_2.findMany({
-      where: { year: yearNum, zone },
+    const hFin = await this.prisma.hFin.findMany({
+      where: { year: yearNum, zone: { equals: zone, mode: 'insensitive' } },
     });
 
     console.log(`🔎 Loaded ${hFin.length} rows for ${zone} in ${yearNum}`);
 
-    // 2) Group state-level budgets
     const groupedByState = hFin.reduce<
       Record<
         string,
@@ -173,11 +175,11 @@ export class HealthFinanceService {
 
       const val = Number(row.value ?? 0);
 
-      if (row.indicator === 'Health Budget' && row.status === 'Budgeted') {
+      if (row.indicator === 'Health Budget' && row.category === 'Budgeted') {
         acc[st].healthBudget += val;
       } else if (
         row.indicator === 'State Budget' &&
-        row.status === 'Budgeted'
+        row.category === 'Budgeted'
       ) {
         acc[st].stateBudget += val;
       }
@@ -185,7 +187,6 @@ export class HealthFinanceService {
       return acc;
     }, {});
 
-    // 3) Prepare state totals
     const states = Object.values(groupedByState).map((s) => ({
       state: s.state,
       healthBudget: s.healthBudget,
@@ -196,17 +197,14 @@ export class HealthFinanceService {
           : 0,
     }));
 
-    // 4) Fetch perCapita for only the requested zone/year
-    const perCapita = await this.prisma.per_Capita.findMany({
-      where: { year: yearNum, zone },
+    const perCapita = await this.prisma.lGA_Per_Capita.findMany({
+      where: { year: yearNum, zone: { equals: zone, mode: 'insensitive' } },
     });
 
-    // 5) Fetch perCapita for ALL states in the given year
-    const allState = await this.prisma.per_Capita.findMany({
+    const allState = await this.prisma.lGA_Per_Capita.findMany({
       where: { year: yearNum },
     });
 
-    // 6) Zonal totals
     const zonalHealthTotal = states.reduce(
       (sum, state) => sum + state.healthBudget,
       0,
@@ -223,8 +221,8 @@ export class HealthFinanceService {
         zonalHealthTotal,
         zonalStateTotal,
         states,
-        per_capita: perCapita, // zone only
-        all_state: allState, // all states
+        per_capita: perCapita,
+        all_state: allState,
       },
     };
   }

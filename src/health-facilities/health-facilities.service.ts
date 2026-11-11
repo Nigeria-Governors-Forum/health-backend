@@ -59,7 +59,7 @@ export class HealthFacilitiesService {
   }
 
   async getHealthFacilityData(state: string, year: string) {
-    const hFacilities = await this.prisma.hFcilities.findMany({
+    const hFacilities = await this.prisma.health_Facilities.findMany({
       where: { state, year: Number(year) },
     });
     const totals = hFacilities.reduce(
@@ -85,7 +85,7 @@ export class HealthFacilitiesService {
     }, {});
 
     const serviceProvision =
-      await this.prisma.hFcilities_Service_Provision.findMany({
+      await this.prisma.health_Fac_Service_Provision.findMany({
         where: { state, year: Number(year) },
       });
 
@@ -127,11 +127,22 @@ export class HealthFacilitiesService {
     };
   }
 
-  async getZonalHealthFacilityData(zone: string, year: string) {
-    const yearNum = Number(year);
+  async getZonalHealthFacilityData(
+    zone: string,
+    year?: string,
+    state?: string,
+  ) {
+    let yearNum = year ? Number(year) : NaN;
+    if (isNaN(yearNum)) {
+      const latestRow = await this.prisma.health_Facilities.findFirst({
+        orderBy: { year: 'desc' },
+        where: { year: { not: null } },
+      });
+      yearNum = latestRow?.year ?? new Date().getFullYear();
+    }
 
     // 1) load ALL health facilities for the year
-    const hFacilities = await this.prisma.hFcilities.findMany({
+    const hFacilities = await this.prisma.health_Facilities.findMany({
       where: { year: yearNum },
     });
 
@@ -280,13 +291,68 @@ export class HealthFacilitiesService {
 
     // console.log(`➡️ zoneWithin: ${zoneWithin.length}, allStates: ${allStates.length}`);
 
-    // 8) return
+    // 8) Build slug dictionaries for national map
+    const total_facilities: Record<string, number> = {};
+    const per_capita: Record<string, number> = {};
+
+    allStates.forEach((s) => {
+      const slug = s.state.toLowerCase().trim().replace(/\s+/g, '-');
+      total_facilities[slug] = s.total;
+      if (s.rate_graph !== null && s.rate_graph !== undefined) {
+        per_capita[slug] = s.rate_graph;
+      }
+    });
+
+    // 9) Query trend data dynamically from health_Facilities
+    const trendWhere: any = {};
+    if (state && state.trim()) {
+      trendWhere.state = { equals: state.trim(), mode: 'insensitive' };
+    }
+
+    const trendRows = await this.prisma.health_Facilities.findMany({
+      where: trendWhere,
+      orderBy: { year: 'asc' },
+    });
+
+    const trendMap = trendRows.reduce<
+      Record<
+        number,
+        {
+          year: number;
+          public: number;
+          private: number;
+          total: number;
+          value: number;
+        }
+      >
+    >((acc, row) => {
+      const y = row.year;
+      if (!y) return acc;
+      if (!acc[y]) {
+        acc[y] = { year: y, public: 0, private: 0, total: 0, value: 0 };
+      }
+      const val = Number(row.value ?? 0);
+      const ownership = (row.ownership ?? '').toLowerCase();
+      if (ownership.includes('public')) acc[y].public += val;
+      else if (ownership.includes('private')) acc[y].private += val;
+      acc[y].total += val;
+      acc[y].value += val;
+      return acc;
+    }, {});
+
+    const trend = Object.values(trendMap).sort((a, b) => a.year - b.year);
+
+    // 10) return
     return {
       data: {
         zone: capitalizeWords(zone),
         year: yearNum,
+        state: state ?? null,
         zoneWithin,
         allStates,
+        total_facilities,
+        per_capita,
+        trend,
         meta: {
           totalFacilityRows: hFacilities.length,
           uniqueStates: allStates.length,

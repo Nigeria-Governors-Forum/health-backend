@@ -17,6 +17,8 @@ import { HealthFacilitiesModule } from './health-facilities/health-facilities.mo
 import { ZonalHealthFacilitiesModule } from './zonal-health-facilities/zonal-health-facilities.module';
 import { ScorecardModule } from './scorecard/scorecard.module';
 import { ServiceCoverageModule } from './service-coverage/service-coverage.module';
+import { HealthInsuranceModule } from './health-insurance/health-insurance.module';
+import { HealthOutcomesModule } from './health-outcomes/health-outcomes.module';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { ServiceCoverageModule } from './service-coverage/service-coverage.modul
     ZonalHealthFacilitiesModule,
     ScorecardModule,
     ServiceCoverageModule,
+    HealthInsuranceModule,
+    HealthOutcomesModule,
   ],
   controllers: [AppController],
   providers: [

@@ -7,7 +7,10 @@ export class ServiceCoverageService {
 
   async getServiceCoverageData(state: string, year: number) {
     const rows = await this.prisma.access_Service_Utilization.findMany({
-      where: { state, year },
+      where: {
+        state: { equals: state, mode: 'insensitive' },
+        calendar_year: year,
+      },
     });
 
     const indicators: Record<string, { value: number; target: number }> = {};
@@ -40,7 +43,7 @@ export class ServiceCoverageService {
     const zonalRows = await this.prisma.access_Service_Utilization.findMany({
       where: {
         zone: { equals: zone, mode: 'insensitive' },
-        year,
+        calendar_year: year,
         indicator: { equals: indicator, mode: 'insensitive' },
       },
     });
@@ -58,7 +61,7 @@ export class ServiceCoverageService {
     // 2. National data
     const nationalRows = await this.prisma.access_Service_Utilization.findMany({
       where: {
-        year,
+        calendar_year: year,
         indicator: { equals: indicator, mode: 'insensitive' },
       },
     });
@@ -78,15 +81,15 @@ export class ServiceCoverageService {
     // 3. Trend data
     const trendRows = await this.prisma.access_Service_Utilization.findMany({
       where: {
-        state,
+        state: { equals: state, mode: 'insensitive' },
         indicator: { equals: indicator, mode: 'insensitive' },
-        year: { gte: year - 4, lte: year },
+        calendar_year: { gte: year - 4, lte: year },
       },
-      orderBy: { year: 'asc' },
+      orderBy: { calendar_year: 'asc' },
     });
 
     const trend = trendRows.map((r) => ({
-      year: r.year,
+      year: r.calendar_year,
       value:
         r.value !== null && r.value !== undefined
           ? Math.round(r.value * 100)

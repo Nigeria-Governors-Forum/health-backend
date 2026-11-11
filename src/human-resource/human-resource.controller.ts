@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Query,
   Delete,
 } from '@nestjs/common';
 import { HumanResourceService } from './human-resource.service';
@@ -23,6 +24,11 @@ export class HumanResourceController {
   @Get()
   findAll() {
     return this.humanResourceService.findAll();
+  }
+
+  @Get('zonal')
+  getAllZonalHumanResourceData(@Query('year') year?: string) {
+    return this.humanResourceService.getZonalHumanResourceData(year);
   }
 
   @Get(':id')
@@ -46,5 +52,13 @@ export class HumanResourceController {
   @Get(':state/:year')
   getDashboardData(@Param('state') state: string, @Param('year') year: string) {
     return this.humanResourceService.getHumanResourceData(state, year);
+  }
+
+  @Get('zonal/:zone/:state/:year')
+  getZonalHumanResourceData(
+    @Param('year') year: string,
+    @Param('state') state: string,
+  ) {
+    return this.humanResourceService.getZonalHumanResourceData(year, state);
   }
 }

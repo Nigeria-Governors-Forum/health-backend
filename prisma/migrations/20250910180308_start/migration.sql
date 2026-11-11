@@ -48,7 +48,7 @@ CREATE TABLE "public"."Demography_LGA" (
     "lga" TEXT,
     "lga_population" DOUBLE PRECISION,
     "number_of_wards" INTEGER,
-    "hard_to_reach_lgas" TEXT,
+    "hard_to_reach_wards" TEXT,
     "health_facilities" INTEGER,
 
     CONSTRAINT "Demography_LGA_pkey" PRIMARY KEY ("id")
@@ -98,7 +98,7 @@ CREATE TABLE "public"."HRH" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."HRH_Professions" (
+CREATE TABLE "public"."HRH" (
     "id" SERIAL NOT NULL,
     "zone" TEXT,
     "state" TEXT,
@@ -108,7 +108,7 @@ CREATE TABLE "public"."HRH_Professions" (
     "number" INTEGER,
     "density" DOUBLE PRECISION,
 
-    CONSTRAINT "HRH_Professions_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "HRH_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -167,7 +167,7 @@ CREATE TABLE "public"."NDHS" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."HFin_1" (
+CREATE TABLE "public"."HFin" (
     "id" SERIAL NOT NULL,
     "zone" TEXT,
     "state" TEXT,
@@ -178,7 +178,7 @@ CREATE TABLE "public"."HFin_1" (
     "status" TEXT,
     "value" DOUBLE PRECISION,
 
-    CONSTRAINT "HFin_1_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "HFin_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
