@@ -9,7 +9,8 @@ import {
   Delete,
   ParseIntPipe,
   BadRequestException,
-  HttpStatus,
+  HttpException,
+  InternalServerErrorException,
   UploadedFile,
   UseInterceptors,
   Sse,
@@ -84,8 +85,8 @@ export class UserController {
   ) {
     try {
       // Validate year
-      if (year < 2000) {
-        throw new BadRequestException('Year must be 2000 or higher');
+      if (year < 2000 || year > 2100) {
+        throw new BadRequestException('Year must be between 2000 and 2100');
       }
 
       if (!file) {
@@ -102,18 +103,17 @@ export class UserController {
       const workbook = XLSX.read(file.buffer, { type: 'buffer' });
 
       // Call service and pass workbook directly
-      const result = await this.userService.uploadFromWorkbook(workbook);
+      const result = await this.userService.uploadFromWorkbook(workbook, year);
 
       return {
-        statusCode: HttpStatus.OK,
+        statusCode: 200,
         message: result.message,
       };
     } catch (error) {
-      return {
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: `Upload failed for year ${year}`,
-        error: error.message,
-      };
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(
+        `Upload failed for year ${year}`,
+      );
     }
   }
 

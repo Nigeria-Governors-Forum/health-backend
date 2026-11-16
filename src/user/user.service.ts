@@ -52,6 +52,16 @@ function getPrismaModel(prisma: any, name: string): any {
   if (norm === 'hrh' || norm === 'health_training_institutions') {
     return prisma.health_Training_Institutions;
   }
+  if (
+    norm === 'threat_vulnerability_assessment' ||
+    norm === 'threat_assessment' ||
+    norm === 'threat_vulnerability'
+  ) {
+    return prisma.threat_Vulnerability_Assessment;
+  }
+  if (norm === 'threat_vulnerability_lga' || norm === 'threat_lga') {
+    return prisma.threat_Vulnerability_LGA;
+  }
   const proto = Object.getPrototypeOf(prisma);
   const keys = [...Object.keys(prisma), ...Object.getOwnPropertyNames(proto)];
   for (const k of keys) {
@@ -122,6 +132,10 @@ export class UserService {
     Flagship_Project: ['state', 'year', 'project'], // only one per state/year
     Presidential_Indicators: ['state', 'year', 'indicator'], // only one per state/year
     LGA_Population: ['state', 'year', 'lga'], // only one per state/year
+    Threat_Vulnerability_Assessment: ['state', 'year'],
+    Threat_Assessment: ['state', 'year'],
+    Threat_Vulnerability_LGA: ['state', 'lga', 'year'],
+    Threat_LGA: ['state', 'lga', 'year'],
   };
 
   async findAll() {
@@ -198,7 +212,7 @@ export class UserService {
     };
   }
 
-  async uploadFromWorkbook(workbook: XLSX.WorkBook) {
+  async uploadFromWorkbook(workbook: XLSX.WorkBook, defaultYear?: number) {
     const totalSheets = workbook.SheetNames.length;
     let processedSheets = 0;
     const sheetReports: Array<{
@@ -241,6 +255,18 @@ export class UserService {
         normLower === 'health_training_institutions'
       )
         canonicalSheetKey = 'Health_Training_Institutions';
+      else if (
+        normLower === 'threat_vulnerability_assessment' ||
+        normLower === 'threat_assessment' ||
+        normLower === 'threat_vulnerability' ||
+        normLower === 'threat'
+      )
+        canonicalSheetKey = 'Threat_Vulnerability_Assessment';
+      else if (
+        normLower === 'threat_vulnerability_lga' ||
+        normLower === 'threat_lga'
+      )
+        canonicalSheetKey = 'Threat_Vulnerability_LGA';
 
       if (!sheetData.length) {
         sheetReports.push({
@@ -398,7 +424,38 @@ export class UserService {
                 fieldName = 'health_Facilities';
             }
 
+            // Map Threat_Vulnerability_Assessment column variants
+            if (
+              canonicalSheetKey === 'Threat_Vulnerability_Assessment' ||
+              canonicalSheetKey === 'Threat_Vulnerability_LGA'
+            ) {
+              if (
+                fieldName === 'hotspots' ||
+                fieldName === 'hotspots_lga' ||
+                fieldName === 'hotspots___lga' ||
+                fieldName === 'hotspots__lga' ||
+                fieldName === 'hotspot_lga' ||
+                fieldName === 'hotspots_or_lga' ||
+                fieldName === 'hotspot'
+              ) {
+                fieldName = 'hotspots_lga';
+              }
+              if (
+                fieldName === 'primary_threat' ||
+                fieldName === 'threats' ||
+                fieldName === 'threat' ||
+                fieldName === 'issues' ||
+                fieldName === 'issue'
+              ) {
+                fieldName = 'primary_threats';
+              }
+            }
+
             sanitized[fieldName] = value;
+          }
+
+          if (sanitized.year === undefined || sanitized.year === null) {
+            sanitized.year = defaultYear;
           }
 
           if (validFieldsSet) {

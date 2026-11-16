@@ -216,3 +216,26 @@ model Presidential_Indicators {
   indicator String?
   value     Int?
 }
+
+model Threat_Vulnerability_Assessment {
+  id              Int     @id @default(autoincrement())
+  zone            String?
+  state           String?
+  year            Int?
+  page            String?
+  risk            String?
+  primary_threats String?
+  hotspots_lga    String?
+}
+
+model Threat_Vulnerability_LGA {
+  id              Int     @id @default(autoincrement())
+  zone            String?
+  state           String?
+  year            Int?
+  page            String?
+  lga             String?
+  risk            String?
+  primary_threats String?
+}
+

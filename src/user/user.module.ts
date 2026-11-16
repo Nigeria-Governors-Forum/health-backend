@@ -17,6 +17,6 @@ import { JwtStrategy } from './jwt.strategy';
       signOptions: { expiresIn: '1d' },
     }),
   ],
-  exports: [JwtModule, PassportModule],
+  exports: [JwtModule, PassportModule, UserService],
 })
 export class UserModule {}

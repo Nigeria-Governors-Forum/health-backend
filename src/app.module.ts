@@ -19,6 +19,7 @@ import { ScorecardModule } from './scorecard/scorecard.module';
 import { ServiceCoverageModule } from './service-coverage/service-coverage.module';
 import { HealthInsuranceModule } from './health-insurance/health-insurance.module';
 import { HealthOutcomesModule } from './health-outcomes/health-outcomes.module';
+import { ThreatAssessmentModule } from './threat-assessment/threat-assessment.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { HealthOutcomesModule } from './health-outcomes/health-outcomes.module';
     ServiceCoverageModule,
     HealthInsuranceModule,
     HealthOutcomesModule,
+    ThreatAssessmentModule,
   ],
   controllers: [AppController],
   providers: [
