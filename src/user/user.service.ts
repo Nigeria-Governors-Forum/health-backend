@@ -51,7 +51,7 @@ function getPrismaModel(prisma: any, name: string): any {
   if (norm === 'health_training_institutions') {
     return prisma.health_Training_Institutions;
   }
-  if (norm === 'health_fin' || norm === 'hfin') {
+  if (norm === 'health_fin' ) {
     return prisma.health_Fin;
   }
   if (
@@ -120,15 +120,6 @@ export class UserService {
       'expenditure_type',
       'program_classification',
     ],
-    HFin: [
-      'state',
-      'year',
-      'category',
-      'indicator',
-      'exp_type',
-      'program_classification',
-    ],
-    HFin_2: ['state', 'year', 'indicator', 'exp_type', 'status'],
     LGA_Fin: ['state', 'lga', 'year', 'indicator', 'exp_type', 'status'],
     LGA_PCap: ['state', 'lga', 'year'],
     Scorecards: ['state', 'name', 'year', 'indicator', 'round'],
@@ -269,7 +260,7 @@ export class UserService {
       let canonicalSheetKey = sheetName.trim().replace(/\s+/g, '_');
       const normLower = canonicalSheetKey.toLowerCase();
       if (normLower === 'demography_lga') canonicalSheetKey = 'Demography_LGA';
-      else if (normLower === 'health_fin' || normLower === 'hfin')
+      else if (normLower === 'health_fin')
         canonicalSheetKey = 'Health_Fin';
       else if ( normLower === 'health_facilities')
         canonicalSheetKey = 'Health_Facilities';
@@ -451,7 +442,7 @@ export class UserService {
                   fieldName === 'lga_population' ||
                   fieldName === 'percentage' ||
                   fieldName === 'target' ||
-                  ((canonicalSheetKey === 'Health_Fin' || canonicalSheetKey === 'HFin') && fieldName === 'value') ||
+                  ((canonicalSheetKey === 'Health_Fin' ) && fieldName === 'value') ||
                   (usesCalendarYear && fieldName === 'value') ||
                   (canonicalSheetKey === 'HRH' && fieldName === 'density');
                 value = parseNumericValue(value, isFloat);
@@ -461,7 +452,7 @@ export class UserService {
             // Map section column to page field
             if (fieldName === 'section') fieldName = 'page';
 
-            if (canonicalSheetKey === 'Health_Fin' || canonicalSheetKey === 'HFin') {
+            if (canonicalSheetKey === 'Health_Fin' ) {
               if (fieldName === 'type') fieldName = 'category';
               if (fieldName === 'page') fieldName = 'Page';
               if (fieldName === 'exp_type') fieldName = 'expenditure_type';
