@@ -5,7 +5,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   create(createDashboardDto: CreateDashboardDto) {
     return 'This action adds a new dashboard';
@@ -33,6 +33,7 @@ export class DashboardService {
     });
 
     const data: Record<string, number | null> = {};
+
     rows.forEach((row) => {
       const key = row.indicator
         ? row.indicator.toLowerCase().replace(/\s+/g, '_')
@@ -60,13 +61,13 @@ export class DashboardService {
       0,
     );
 
-    const partnersMapping = await this.prisma.partners_Mapping.findMany({
-      where: { state, year: Number(year) },
-    });
+    // const partnersMapping = await this.prisma.partners_Mapping.findMany({
+    //   where: { state, year: Number(year) },
+    // });
 
-    const uniquePartners = [
-      ...new Set(partnersMapping.map((p) => p.partner?.trim())),
-    ].filter(Boolean);
+    // const uniquePartners = [
+    //   ...new Set(partnersMapping.map((p) => p.partner?.trim())),
+    // ].filter(Boolean);
 
     const demography_LGA = await this.prisma.demography_LGA.findMany({
       where: { state, year: Number(year) },
@@ -135,7 +136,7 @@ export class DashboardService {
       data: {
         year_created: data['year_created'] ?? null,
         land_mass: data['land_mass'] ?? null,
-        no_of_lgas: data['no_of_lgas'] ?? null,
+        no_of_lgas: data['lgas'] ?? null,
         political_wards: data['political_wards'] ?? null,
         total_population: data['total_population'] ?? null,
         health_facilities: Object.values(totals).reduce<number>(
@@ -146,7 +147,7 @@ export class DashboardService {
           data['total_population'] && data['total_population'] > 0
             ? Math.round((totalValue / data['total_population']) * 100)
             : null,
-        partners_mapping: uniquePartners.length,
+        // partners_mapping: uniquePartners.length,
         hRH: hRH.reduce((acc, cur) => acc + (Number(cur?.value) || 0), 0),
         HRH: HRH.reduce(
           (acc, cur) => acc + (Number(cur.values ?? 0) || 0),

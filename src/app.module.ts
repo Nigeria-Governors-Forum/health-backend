@@ -20,6 +20,7 @@ import { ServiceCoverageModule } from './service-coverage/service-coverage.modul
 import { HealthInsuranceModule } from './health-insurance/health-insurance.module';
 import { HealthOutcomesModule } from './health-outcomes/health-outcomes.module';
 import { ThreatAssessmentModule } from './threat-assessment/threat-assessment.module';
+import { PartnersMappingModule } from './partners-mapping/partners-mapping.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { ThreatAssessmentModule } from './threat-assessment/threat-assessment.mo
     HealthInsuranceModule,
     HealthOutcomesModule,
     ThreatAssessmentModule,
+    PartnersMappingModule,
   ],
   controllers: [AppController],
   providers: [

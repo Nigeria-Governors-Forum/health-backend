@@ -41,8 +41,7 @@ async function uploadHealthFacServiceProvision(filePath) {
       const norm = name.toLowerCase().replace(/\s+/g, '_');
       return (
         norm === 'health_fac_service_provision' ||
-        norm === 'health_facilities_service_provision' ||
-        norm === 'hfcilities_service_provision'
+        norm === 'health_facilities_service_provision'
       );
     }
   );

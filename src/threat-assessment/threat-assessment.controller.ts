@@ -37,6 +37,16 @@ export class ThreatAssessmentController {
     return this.threatAssessmentService.seed(year ? Number(year) : 2026);
   }
 
+  @Post('bulk')
+  bulkUpdate(
+    @Body() body: { items: any[]; year?: number },
+  ) {
+    if (!body || !Array.isArray(body.items)) {
+      throw new BadRequestException('items must be an array of records');
+    }
+    return this.threatAssessmentService.bulkUpdate(body.items, body.year);
+  }
+
   @Post('upload/:year')
   @UseInterceptors(FileInterceptor('file'))
   async uploadWorkbook(
@@ -49,36 +59,52 @@ export class ThreatAssessmentController {
     if (!file) {
       throw new BadRequestException('Excel file is required');
     }
-    if (!/\.(xlsx|xls|xlsb)$/i.test(file.originalname)) {
+    if (!/\.(xlsx|xls|xlsb|csv)$/i.test(file.originalname)) {
       throw new BadRequestException(
-        'Only Excel files (.xlsx, .xls, .xlsb) are allowed',
+        'Only Excel (.xlsx, .xls, .xlsb) or CSV (.csv) files are allowed',
       );
     }
 
     const workbook = XLSX.read(file.buffer, { type: 'buffer' });
-    const securitySheetNames = workbook.SheetNames.filter((sheetName) =>
+    let securitySheetNames = workbook.SheetNames.filter((sheetName) =>
       [
         'threatvulnerabilityassessment',
         'threatassessment',
         'threatvulnerability',
         'threat',
+        'threats',
+        'security',
+        'securityassessment',
+        'securitydata',
+        'threatdata',
       ].includes(sheetName.toLowerCase().replace(/[^a-z]/g, '')),
     );
+
+    if (securitySheetNames.length === 0) {
+      const match = workbook.SheetNames.find((s) => {
+        const lower = s.toLowerCase();
+        return lower.includes('threat') || lower.includes('secur');
+      });
+      if (match) {
+        securitySheetNames = [match];
+      } else if (workbook.SheetNames.length === 1) {
+        securitySheetNames = [workbook.SheetNames[0]];
+      }
+    }
+
     if (securitySheetNames.length === 0) {
       throw new BadRequestException(
-        'Workbook must contain a Threat_Vulnerability_Assessment sheet',
+        'Workbook must contain security threat assessment data',
       );
     }
 
+    const chosenSheetName = securitySheetNames[0];
     const securityWorkbook: XLSX.WorkBook = {
       ...workbook,
-      SheetNames: securitySheetNames,
-      Sheets: Object.fromEntries(
-        securitySheetNames.map((sheetName) => [
-          sheetName,
-          workbook.Sheets[sheetName],
-        ]),
-      ),
+      SheetNames: ['Threat_Vulnerability_Assessment'],
+      Sheets: {
+        Threat_Vulnerability_Assessment: workbook.Sheets[chosenSheetName],
+      },
     };
     const result = await this.userService.uploadFromWorkbook(
       securityWorkbook,
@@ -86,7 +112,7 @@ export class ThreatAssessmentController {
     );
     const reports = result.sheetReports ?? [];
     const failedReports = reports.filter(
-      (report) => report.status === 'FAILED' || report.status === 'SKIPPED',
+      (report) => report.status === 'FAILED',
     );
     if (failedReports.length > 0) {
       throw new BadRequestException({
@@ -100,6 +126,11 @@ export class ThreatAssessmentController {
       year,
       reports,
     };
+  }
+
+  @Get('years')
+  getYears() {
+    return this.threatAssessmentService.getYears();
   }
 
   @Get()

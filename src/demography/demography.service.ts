@@ -33,6 +33,7 @@ export class DemographyService {
     });
 
     const data: Record<string, number | null> = {};
+
     rows.forEach((row) => {
       const key = row.indicator
         ? row.indicator.toLowerCase().replace(/\s+/g, '_')

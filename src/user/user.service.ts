@@ -43,13 +43,12 @@ function getPrismaModel(prisma: any, name: string): any {
     return prisma.health_Facilities;
   }
   if (
-    norm === 'hfcilities_service_provision' ||
     norm === 'health_fac_service_provision' ||
     norm === 'health_facilities_service_provision'
   ) {
     return prisma.health_Fac_Service_Provision;
   }
-  if (norm === 'hrh' || norm === 'health_training_institutions') {
+  if (norm === 'health_training_institutions') {
     return prisma.health_Training_Institutions;
   }
   if (
@@ -104,31 +103,48 @@ export class UserService {
   private uniqueKeys: Record<string, string[]> = {
     Demography: ['state', 'year', 'indicator', 'category_1', 'category_2'],
     Demography_LGA: ['state', 'lga', 'year'],
-    Access_Service_Utilization: ['state', 'year', 'indicator'],
-    HFin: ['state', 'year', 'indicator', 'exp_type', 'status'],
+    Access_Service_Utilization: [
+      'state',
+      'calendar_year',
+      'data_year',
+      'indicator',
+    ],
+    HFin: [
+      'state',
+      'year',
+      'category',
+      'indicator',
+      'exp_type',
+      'program_classification',
+    ],
     HFin_2: ['state', 'year', 'indicator', 'exp_type', 'status'],
     LGA_Fin: ['state', 'lga', 'year', 'indicator', 'exp_type', 'status'],
     LGA_PCap: ['state', 'lga', 'year'],
-    Scorecards: ['state', 'name', 'year', 'indicator'],
+    Scorecards: ['state', 'name', 'year', 'indicator', 'round'],
     Partners_Mapping: [
       'state',
       'year',
       'partner',
-      'intervention_group_correct',
+      'intervention_area',
+      'coverage_area',
     ],
     HFcilities: ['state', 'year', 'indicator', 'level', 'ownership'],
     Health_Facilities: ['state', 'year', 'indicator', 'level', 'ownership'],
-    HFcilities_Service_Provision: ['state', 'year', 'service_provision'],
     Health_Fac_Service_Provision: ['state', 'year', 'service_provision'],
     Health_Facilities_Service_Provision: ['state', 'year', 'service_provision'],
-    HRH: ['state', 'year', 'institution', 'ownership'],
+    HRH: ['state', 'year', 'indicator'],
     Health_Training_Institutions: ['state', 'year', 'institution', 'ownership'],
-    Insurance_Coverage: ['state', 'year', 'name', 'indicator'],
-    Health_Outcomes: ['state', 'year', 'indicator'],
+    Insurance_Coverage: ['state', 'year', 'indicator', 'enrollee_type'],
+    Health_Outcomes: [
+      'state',
+      'calendar_year',
+      'data_year',
+      'indicator',
+    ],
     NDHS: ['state', 'year', 'category', 'indicator'],
     Per_Capita: ['state', 'year'],
 
-    Admission_Quota: ['state', 'year', 'school', 'faculty'],
+    Admission_Quota: ['state', 'year', 'indicator', 'faculty'],
     Flagship_Project: ['state', 'year', 'project'], // only one per state/year
     Presidential_Indicators: ['state', 'year', 'indicator'], // only one per state/year
     LGA_Population: ['state', 'year', 'lga'], // only one per state/year
@@ -242,16 +258,15 @@ export class UserService {
       let canonicalSheetKey = sheetName.trim().replace(/\s+/g, '_');
       const normLower = canonicalSheetKey.toLowerCase();
       if (normLower === 'demography_lga') canonicalSheetKey = 'Demography_LGA';
-      else if (normLower === 'hfcilities' || normLower === 'health_facilities')
+      else if (normLower === 'health_fin') canonicalSheetKey = 'HFin';
+      else if ( normLower === 'health_facilities')
         canonicalSheetKey = 'Health_Facilities';
       else if (
-        normLower === 'hfcilities_service_provision' ||
         normLower === 'health_fac_service_provision' ||
         normLower === 'health_facilities_service_provision'
       )
         canonicalSheetKey = 'Health_Fac_Service_Provision';
       else if (
-        normLower === 'hrh' ||
         normLower === 'health_training_institutions'
       )
         canonicalSheetKey = 'Health_Training_Institutions';
@@ -267,6 +282,10 @@ export class UserService {
         normLower === 'threat_lga'
       )
         canonicalSheetKey = 'Threat_Vulnerability_LGA';
+
+      const usesCalendarYear =
+        canonicalSheetKey === 'Access_Service_Utilization' ||
+        canonicalSheetKey === 'Health_Outcomes';
 
       if (!sheetData.length) {
         sheetReports.push({
@@ -297,8 +316,6 @@ export class UserService {
         });
         continue;
       }
-
-      console.log(`📂 Processing ${sheetName} (${canonicalSheetKey}) ...`);
 
       const modelFields = (Prisma as any).dmmf?.datamodel?.models?.find(
         (m: any) => m.name.toLowerCase() === canonicalSheetKey.toLowerCase(),
@@ -337,7 +354,7 @@ export class UserService {
         for (const row of sheetData) {
           const sanitized: Record<string, any> = {};
           for (const key of Object.keys(row)) {
-            let fieldName = key.replace(/\s+/g, '_').toLowerCase();
+            let fieldName = key.trim().replace(/\s+/g, '_').toLowerCase();
             let value = row[key];
 
             // Normalize state strings
@@ -357,18 +374,60 @@ export class UserService {
               value = isNaN(parsedYr) ? null : parsedYr;
             }
 
+            if (
+              usesCalendarYear &&
+              fieldName === 'calendar_year' &&
+              value !== undefined &&
+              value !== null
+            ) {
+              const parsedYr = parseInt(String(value), 10);
+              value = isNaN(parsedYr) ? null : parsedYr;
+            }
+
+            if (
+              usesCalendarYear &&
+              fieldName === 'data_year' &&
+              value !== undefined &&
+              value !== null
+            ) {
+              value = String(value).trim();
+            }
+
             // Date handling
             if (fieldName === 'period' && value) {
               sanitized.year = excelDateToYear(value);
               continue;
             }
 
+            if (
+              canonicalSheetKey === 'Scorecards' &&
+              fieldName === 'value' &&
+              value !== undefined &&
+              value !== null
+            ) {
+              value = String(value).trim();
+            }
+
+            if (
+              canonicalSheetKey === 'Partners_Mapping' &&
+              fieldName === 'coverage_area' &&
+              value !== undefined &&
+              value !== null
+            ) {
+              value = String(value).trim();
+            }
+
             // Parse numeric fields safely for integers and floats across all models
             if (
               fieldName === 'lga_population' ||
               fieldName === 'number_of_wards' ||
+              fieldName === 'hard_to_reach_wards' ||
               fieldName === 'health_facilities' ||
-              fieldName === 'value' ||
+              fieldName === 'density' ||
+              (fieldName === 'value' && canonicalSheetKey !== 'Scorecards') ||
+              fieldName === 'values' ||
+              fieldName === 'state_population' ||
+              fieldName === 'target' ||
               fieldName === 'number' ||
               fieldName === 'percentage'
             ) {
@@ -377,7 +436,12 @@ export class UserService {
                 value = parseYearCreated(value);
               } else {
                 const isFloat =
-                  fieldName === 'lga_population' || fieldName === 'percentage';
+                  fieldName === 'lga_population' ||
+                  fieldName === 'percentage' ||
+                  fieldName === 'target' ||
+                  (canonicalSheetKey === 'HFin' && fieldName === 'value') ||
+                  (usesCalendarYear && fieldName === 'value') ||
+                  (canonicalSheetKey === 'HRH' && fieldName === 'density');
                 value = parseNumericValue(value, isFloat);
               }
             }
@@ -385,14 +449,19 @@ export class UserService {
             // Map section column to page field
             if (fieldName === 'section') fieldName = 'page';
 
+            if (canonicalSheetKey === 'HFin') {
+              if (fieldName === 'type') fieldName = 'category';
+              if (fieldName === 'page') fieldName = 'Page';
+            }
+
             // Map Demography_LGA column variants
             if (canonicalSheetKey === 'Demography_LGA') {
               if (
-                fieldName === 'hard_to_reach_colour' ||
                 fieldName === 'hard_to_reach_lga' ||
+                fieldName === 'hard_to_reach_lgas' ||
                 fieldName === 'hard_to_reach'
               ) {
-                fieldName = 'hard_to_reach_wards';
+                fieldName = 'hard_to_reach_colour';
               }
             }
 
@@ -429,32 +498,108 @@ export class UserService {
               canonicalSheetKey === 'Threat_Vulnerability_Assessment' ||
               canonicalSheetKey === 'Threat_Vulnerability_LGA'
             ) {
+              const cleanField = fieldName
+                .replace(/[^a-z0-9]/g, '_')
+                .replace(/_+/g, '_')
+                .replace(/^_|_$/g, '');
               if (
-                fieldName === 'hotspots' ||
-                fieldName === 'hotspots_lga' ||
-                fieldName === 'hotspots___lga' ||
-                fieldName === 'hotspots__lga' ||
-                fieldName === 'hotspot_lga' ||
-                fieldName === 'hotspots_or_lga' ||
-                fieldName === 'hotspot'
+                cleanField === 'hotspots' ||
+                cleanField === 'hotspots_lga' ||
+                cleanField === 'hotspot_lga' ||
+                cleanField === 'hotspot' ||
+                cleanField === 'hotspots_or_lga' ||
+                cleanField === 'lga_hotspots' ||
+                cleanField === 'lgas'
               ) {
                 fieldName = 'hotspots_lga';
               }
               if (
-                fieldName === 'primary_threat' ||
-                fieldName === 'threats' ||
-                fieldName === 'threat' ||
-                fieldName === 'issues' ||
-                fieldName === 'issue'
+                cleanField === 'primary_threats' ||
+                cleanField === 'primary_threat' ||
+                cleanField === 'threats' ||
+                cleanField === 'threat' ||
+                cleanField === 'issues' ||
+                cleanField === 'issue'
               ) {
                 fieldName = 'primary_threats';
               }
+              if (
+                cleanField === 'threat_level' ||
+                cleanField === 'risk_level' ||
+                cleanField === 'risk' ||
+                cleanField === 'level'
+              ) {
+                fieldName = 'risk';
+              }
+              if (
+                cleanField === 'geopolitical_zone' ||
+                cleanField === 'geo_zone'
+              ) {
+                fieldName = 'zone';
+              }
+              if (cleanField === 'state_name') {
+                fieldName = 'state';
+              }
+            }
+
+            if (fieldName === 'risk' && value !== undefined && value !== null) {
+              value = String(value).trim().toUpperCase();
+              if (value === 'LOW MODERATE') value = 'LOW-MODERATE';
             }
 
             sanitized[fieldName] = value;
           }
 
-          if (sanitized.year === undefined || sanitized.year === null) {
+          if (canonicalSheetKey === 'Partners_Mapping') {
+            const geopoliticalZones = new Set([
+              'north central',
+              'north east',
+              'north west',
+              'south east',
+              'south south',
+              'south west',
+            ]);
+            const zone = String(sanitized.zone ?? '').trim();
+            const state = String(sanitized.state ?? '').trim();
+            const normalizedZone = zone.toLowerCase();
+            const normalizedState = state.toLowerCase();
+            const zoneIsGeopoliticalZone =
+              geopoliticalZones.has(normalizedZone) ||
+              normalizedZone === 'nortth central';
+            const stateIsGeopoliticalZone =
+              geopoliticalZones.has(normalizedState) ||
+              normalizedState === 'nortth central';
+
+            if (
+              !zoneIsGeopoliticalZone &&
+              stateIsGeopoliticalZone
+            ) {
+              sanitized.zone = state;
+              sanitized.state = zone;
+            }
+
+            if (
+              String(sanitized.zone ?? '').trim().toLowerCase() ===
+              'nortth central'
+            ) {
+              sanitized.zone = 'North Central';
+            }
+            if (
+              String(sanitized.state ?? '').trim().toLowerCase() ===
+              'nortth central'
+            ) {
+              sanitized.state = 'North Central';
+            }
+          }
+
+          if (usesCalendarYear) {
+            if (
+              sanitized.calendar_year === undefined ||
+              sanitized.calendar_year === null
+            ) {
+              sanitized.calendar_year = null;
+            }
+          } else if (sanitized.year === undefined || sanitized.year === null) {
             sanitized.year = defaultYear;
           }
 
@@ -466,12 +611,16 @@ export class UserService {
             }
           }
 
+          const yearToValidate = usesCalendarYear
+            ? sanitized.calendar_year ??
+              Number(sanitized.data_year ?? defaultYear)
+            : sanitized.year;
           if (
-            sanitized.year === null ||
-            sanitized.year === undefined ||
-            isNaN(sanitized.year) ||
-            sanitized.year < 1900 ||
-            sanitized.year > 2100
+            yearToValidate === null ||
+            yearToValidate === undefined ||
+            isNaN(yearToValidate) ||
+            yearToValidate < 1900 ||
+            yearToValidate > 2100
           ) {
             skippedCount++;
             continue;
@@ -530,6 +679,54 @@ export class UserService {
             );
           }
           console.log(`   ➡️ Bulk updated ${toUpdate.length} rows`);
+        }
+
+        // Sync Threat_Vulnerability_LGA records if Threat_Vulnerability_Assessment was uploaded
+        if (canonicalSheetKey === 'Threat_Vulnerability_Assessment') {
+          const allProcessed = [...toCreate, ...toUpdate.map((u) => u.data)];
+          for (const item of allProcessed) {
+            if (item.hotspots_lga && item.state) {
+              const lgas = String(item.hotspots_lga)
+                .replace(/\.+$/, '')
+                .split(/[,;.]|\band\s+some\s+|\band\b/i)
+                .map((s) => s.trim())
+                .filter(
+                  (s) => s.length > 0 && !s.toLowerCase().startsWith('and'),
+                )
+                .map((s) => s.charAt(0).toUpperCase() + s.slice(1));
+
+              const itemYear = item.year ?? defaultYear;
+              try {
+                await this.prisma.threat_Vulnerability_LGA.deleteMany({
+                  where: {
+                    state: {
+                      equals: String(item.state).trim(),
+                      mode: 'insensitive',
+                    },
+                    ...(itemYear ? { year: Number(itemYear) } : {}),
+                  },
+                });
+                if (lgas.length > 0) {
+                  await this.prisma.threat_Vulnerability_LGA.createMany({
+                    data: lgas.map((lga) => ({
+                      zone: item.zone ? String(item.zone).trim() : null,
+                      state: String(item.state).trim(),
+                      lga,
+                      risk: item.risk
+                        ? String(item.risk).trim().toUpperCase()
+                        : null,
+                      primary_threats: item.primary_threats
+                        ? String(item.primary_threats).trim()
+                        : null,
+                      year: itemYear ? Number(itemYear) : null,
+                    })),
+                  });
+                }
+              } catch (lgaErr) {
+                console.warn('Threat_Vulnerability_LGA sync warning:', lgaErr);
+              }
+            }
+          }
         }
 
         if (skippedCount > 0) {

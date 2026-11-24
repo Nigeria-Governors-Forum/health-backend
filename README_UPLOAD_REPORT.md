@@ -21,11 +21,11 @@ This document provides a comprehensive technical audit and report of the Excel s
 | Sheet Name | Mapped Model | Total Rows | Status | Issues & Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | **Demography** | `Demography` | 2,001 | ✅ Success | Columns mapped (`Zone`, `State`, `Year`, `Section` -> `page`, `Indicator`, `Value`). Column `Data_Type` is unmapped in Prisma schema and safely ignored. |
-| **Demography_LGA** | `Demography_LGA` | 3,091 | ✅ Success | Fixed column mapping for `Hard_to_Reach_Colour` -> `hard_to_reach_wards` (**578 hard-to-reach LGAs saved as 'Yes'**). Preserved float precision for `lga_population`. |
+| **Demography_LGA** | `Demography_LGA` | 3,091 | ✅ Success | Maps `Hard_to_Reach_LGAs` to the string field `hard_to_reach_colour`, and keeps numeric ward counts in `hard_to_reach_wards`. Preserves float precision for `lga_population`. |
 | **Health Facilities** | `HFcilities` | 888 | ✅ Fixed | Added alias mapping for `Health Facilities` -> `HFcilities` model. (Previously skipped due to model name spelling difference). |
-| **Health Fac Service Provision** | `HFcilities_Service_Provision` | 1,602 | ✅ Fixed | Added alias mapping for `Health Fac Service Provision` -> `HFcilities_Service_Provision` model. |
-| **Health Training Institutions** | `HRH` | 1,183 | ✅ Fixed | Added alias mapping for `Health Training Institutions` -> `HRH` model (`institution`, `ownership`, `value`). |
-| **Admission Quota** | `Admission_Quota` | 481 | ✅ Success | Mapped `state`, `year`, `school`, `faculty`, `admission_quota`. |
+| **Health Fac Service Provision** | `Health_Fac_Service_Provision` | 1,602 | ✅ Fixed | Mapped to the canonical Prisma model. |
+| **Health Training Institutions** | `Health_Training_Institutions` | 1,183 | ✅ Fixed | Maps to its own model (`institution`, `ownership`, `value`), separate from `HRH`. |
+| **Admission Quota** | `Admission_Quota` | 481 | ✅ Success | Maps `state`, `year`, `indicator`, `faculty`, and integer `value`; rows are identified by state, year, indicator, and faculty. |
 | **Sheet2** | N/A | 0 | ℹ️ Skipped | Empty worksheet. |
 
 ---
@@ -38,7 +38,7 @@ This document provides a comprehensive technical audit and report of the Excel s
 | **Partners_Mapping** | `Partners_Mapping` | 765 | ✅ Success | Mapped partner interventions per state/year. |
 | **Demography_LGA** | `Demography_LGA` | 768 | ✅ Success | 768 LGA demography records processed. |
 | **HFcilities** | `HFcilities` | 216 | ✅ Success | Health facilities count per level/ownership. |
-| **HFcilities_Service_Provision** | `HFcilities_Service_Provision` | 324 | ✅ Success | Service provision counts & percentages. |
+| **Legacy service-provision sheet** | — | 324 | ⚠️ Rename required | Rename the sheet to `Health_Fac_Service_Provision` before upload. |
 | **HRH** | `HRH` | 288 | ✅ Success | Human Resources for Health records. |
 | **HRH** | `HRH` | 396 | ✅ Success | HRH professions density & numbers. |
 | **Insurance_Coverage** | `Insurance_Coverage` | 179 | ✅ Success | Insurance coverage indicators. |
@@ -57,16 +57,16 @@ This document provides a comprehensive technical audit and report of the Excel s
 ## Critical Technical Issues Found & Fixes Applied
 
 ### 1. Hard-to-Reach LGA Column Mapping Bug
-- **Issue**: In `NGF_Health_Dashboard_Data.xlsx`, the hard-to-reach column header was named `Hard_to_Reach_Colour` (`'Yes'`/`'No'`). The backend only looked for `hard_to_reach_wards`, causing all hard-to-reach values to be saved as `'No'` (0 hard-to-reach LGAs found in DB query).
-- **Fix**: Updated [`script/seed-demography.js`](file:///Users/devclassik/Documents/NGF/health-backend/script/seed-demography.js) and [`src/user/user.service.ts`](file:///Users/devclassik/Documents/NGF/health-backend/src/user/user.service.ts) to recognize `Hard_to_Reach_Colour`, `hard_to_reach_lga`, and `hard_to_reach`. **578 hard-to-reach LGAs now correctly saved as `'Yes'`.**
+- **Issue**: The upload service mapped categorical hard-to-reach columns to `hard_to_reach_wards`, an integer field. In the workbook, `Hard_to_Reach_LGAs` contains `'Yes'`/`'No'` values, while the schema stores that category in `hard_to_reach_colour`.
+- **Fix**: Map `Hard_to_Reach_LGAs` (and legacy `hard_to_reach_lga` / `hard_to_reach` headers) to `hard_to_reach_colour`. Keep `hard_to_reach_wards` numeric and parse it alongside `density`.
 
 ### 2. Float Population Precision Truncation
 - **Issue**: `parseNumericValue` called `Math.round(num)` on all numeric fields, rounding float values like `169066.484930941` to `169066`.
 - **Fix**: Added `isFloat` flag to `parseNumericValue` for fields like `lga_population` defined as `Float?` in Prisma schema.
 
-### 3. Model Name Spelling Discrepancies
-- **Issue**: Excel sheets named `Health Facilities`, `Health Fac Service Provision`, and `Health Training Institutions` failed lookup against Prisma models (`HFcilities`, `HFcilities_Service_Provision`, `HRH`) and were silently skipped.
-- **Fix**: Implemented sheet alias mapping in `getPrismaModel()` and `uploadFromWorkbook()` in [`user.service.ts`](file:///Users/devclassik/Documents/NGF/health-backend/src/user/user.service.ts).
+### 3. Model Name Discrepancies
+- **Issue**: Excel sheets named `Health Facilities`, `Health Fac Service Provision`, and `Health Training Institutions` did not match their Prisma model names. The `HRH` sheet was also incorrectly routed to `Health_Training_Institutions`.
+- **Fix**: Map each sheet to its corresponding canonical Prisma model in `getPrismaModel()` and `uploadFromWorkbook()` in [`user.service.ts`](file:///Users/devclassik/Documents/NGF/health-backend/src/user/user.service.ts). `HRH` and `Health_Training_Institutions` are handled separately.
 
 ### 4. Upload Performance Bottleneck & Timeout
 - **Issue**: `isSame` check in `uploadFromWorkbook` evaluated `undefined === null` as `false`, triggering individual sequential `prisma.update()` calls for all ~8,000 existing DB rows during re-upload (taking 5–15+ minutes over cloud WAN database connection).

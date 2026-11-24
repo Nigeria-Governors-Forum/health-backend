@@ -121,7 +121,7 @@ model Scorecards {
   page      String?
   name      String?
   indicator String?
-  value     Int?
+  value     String?
   round     String?
 }
 
@@ -172,7 +172,7 @@ model Partners_Mapping {
   page              String?
   partner           String?
   intervention_area String?
-  coverage_area     Int?
+  coverage_area     String?
 }
 
 model Flagship_Project {

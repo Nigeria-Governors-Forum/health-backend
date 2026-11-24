@@ -28,6 +28,18 @@ export class ThreatAssessmentService {
    * If DB has records, returns them; otherwise falls back to pre-packaged dataset.
    */
   async findAll(filters?: { zone?: string; risk?: string; year?: number }) {
+    let totalCount = 0;
+    try {
+      totalCount = await this.prisma.threat_Vulnerability_Assessment.count();
+      if (totalCount === 0) {
+        // Auto-seed initial records into DB so real records with IDs exist
+        await this.seed(filters?.year ?? 2026);
+        totalCount = await this.prisma.threat_Vulnerability_Assessment.count();
+      }
+    } catch (err) {
+      console.warn('Threat assessment DB count/seed notice:', err);
+    }
+
     let rows: any[] = [];
     try {
       const whereClause: any = {};
@@ -55,9 +67,9 @@ export class ThreatAssessmentService {
       rows = [];
     }
 
-    // Fallback to static dataset if database is empty or not yet seeded
+    // Fallback to static dataset only if database is completely empty and couldn't be seeded
     let result = rows;
-    if (!result || result.length === 0) {
+    if (result.length === 0 && totalCount === 0) {
       let data = getFullThreatAssessmentData();
       if (filters?.zone) {
         const normZ = normalizeStr(filters.zone);
@@ -487,14 +499,196 @@ export class ThreatAssessmentService {
     };
   }
 
+  async getYears(): Promise<number[]> {
+    try {
+      const rows = await this.prisma.threat_Vulnerability_Assessment.findMany({
+        select: { year: true },
+        distinct: ['year'],
+        where: { year: { not: null } },
+        orderBy: { year: 'desc' },
+      });
+      const dbYears = rows.map((r) => r.year as number).filter(Boolean);
+      if (dbYears.length > 0) return dbYears;
+    } catch {}
+    return [2026, 2025, 2024, 2023];
+  }
+
+  async bulkUpdate(
+    items: Array<{
+      id?: number;
+      state: string;
+      zone?: string;
+      risk?: string;
+      primary_threats?: string;
+      hotspots_lga?: string;
+      year?: number;
+    }>,
+    defaultYear = 2026,
+  ) {
+    const results: any[] = [];
+    for (const item of items) {
+      if (!item.state) continue;
+      const yr = item.year ? Number(item.year) : defaultYear;
+      let record: any = null;
+
+      if (item.id) {
+        try {
+          const existingById =
+            await this.prisma.threat_Vulnerability_Assessment.findUnique({
+              where: { id: Number(item.id) },
+            });
+          if (existingById) {
+            record = await this.prisma.threat_Vulnerability_Assessment.update({
+              where: { id: Number(item.id) },
+              data: {
+                state: item.state.trim(),
+                zone: item.zone?.trim(),
+                risk: item.risk?.trim().toUpperCase(),
+                primary_threats: item.primary_threats?.trim(),
+                hotspots_lga: item.hotspots_lga?.trim(),
+                year: yr,
+              },
+            });
+          }
+        } catch {}
+      }
+
+      if (!record) {
+        try {
+          const existingByState =
+            await this.prisma.threat_Vulnerability_Assessment.findFirst({
+              where: {
+                state: { equals: item.state.trim(), mode: 'insensitive' },
+                year: yr,
+              },
+            });
+          if (existingByState) {
+            record = await this.prisma.threat_Vulnerability_Assessment.update({
+              where: { id: existingByState.id },
+              data: {
+                zone: item.zone?.trim() ?? existingByState.zone,
+                risk: item.risk?.trim().toUpperCase() ?? existingByState.risk,
+                primary_threats:
+                  item.primary_threats?.trim() ??
+                  existingByState.primary_threats,
+                hotspots_lga:
+                  item.hotspots_lga?.trim() ?? existingByState.hotspots_lga,
+              },
+            });
+          } else {
+            record = await this.prisma.threat_Vulnerability_Assessment.create({
+              data: {
+                state: item.state.trim(),
+                zone: item.zone?.trim(),
+                risk: item.risk?.trim().toUpperCase(),
+                primary_threats: item.primary_threats?.trim(),
+                hotspots_lga: item.hotspots_lga?.trim(),
+                year: yr,
+              },
+            });
+          }
+        } catch {}
+      }
+
+      if (record) {
+        results.push(record);
+
+        // Sync LGA hotspots
+        if (item.hotspots_lga) {
+          const lgas = parseHotspotLgas(item.hotspots_lga);
+          try {
+            await this.prisma.threat_Vulnerability_LGA.deleteMany({
+              where: {
+                state: { equals: item.state.trim(), mode: 'insensitive' },
+                year: yr,
+              },
+            });
+            if (lgas.length > 0) {
+              await this.prisma.threat_Vulnerability_LGA.createMany({
+                data: lgas.map((lga) => ({
+                  zone: item.zone?.trim() ?? null,
+                  state: item.state.trim(),
+                  lga,
+                  risk: item.risk?.trim().toUpperCase() ?? null,
+                  primary_threats: item.primary_threats?.trim() ?? null,
+                  year: yr,
+                })),
+              });
+            }
+          } catch {}
+        }
+      }
+    }
+
+    return {
+      message: `Successfully saved ${results.length} security assessment records`,
+      total: results.length,
+      data: results,
+    };
+  }
+
   async update(id: number, dto: UpdateThreatAssessmentDto) {
-    return this.prisma.threat_Vulnerability_Assessment.update({
+    const updated = await this.prisma.threat_Vulnerability_Assessment.update({
       where: { id },
-      data: dto,
+      data: {
+        ...(dto.zone !== undefined ? { zone: dto.zone?.trim() } : {}),
+        ...(dto.state !== undefined ? { state: dto.state?.trim() } : {}),
+        ...(dto.year !== undefined ? { year: dto.year } : {}),
+        ...(dto.risk !== undefined
+          ? { risk: dto.risk?.trim().toUpperCase() }
+          : {}),
+        ...(dto.primary_threats !== undefined
+          ? { primary_threats: dto.primary_threats?.trim() }
+          : {}),
+        ...(dto.hotspots_lga !== undefined
+          ? { hotspots_lga: dto.hotspots_lga?.trim() }
+          : {}),
+      },
     });
+
+    if (dto.hotspots_lga !== undefined && updated.state) {
+      const lgas = parseHotspotLgas(dto.hotspots_lga ?? '');
+      try {
+        await this.prisma.threat_Vulnerability_LGA.deleteMany({
+          where: {
+            state: { equals: updated.state, mode: 'insensitive' },
+            ...(updated.year ? { year: updated.year } : {}),
+          },
+        });
+        if (lgas.length > 0) {
+          await this.prisma.threat_Vulnerability_LGA.createMany({
+            data: lgas.map((lga) => ({
+              zone: updated.zone,
+              state: updated.state as string,
+              lga,
+              risk: updated.risk,
+              primary_threats: updated.primary_threats,
+              year: updated.year,
+            })),
+          });
+        }
+      } catch {}
+    }
+
+    return updated;
   }
 
   async remove(id: number) {
+    try {
+      const existing =
+        await this.prisma.threat_Vulnerability_Assessment.findUnique({
+          where: { id },
+        });
+      if (existing?.state) {
+        await this.prisma.threat_Vulnerability_LGA.deleteMany({
+          where: {
+            state: { equals: existing.state, mode: 'insensitive' },
+            ...(existing.year ? { year: existing.year } : {}),
+          },
+        });
+      }
+    } catch {}
+
     return this.prisma.threat_Vulnerability_Assessment.delete({
       where: { id },
     });
