@@ -164,36 +164,13 @@ export class DashboardService {
       where: {
         state: { equals: state, mode: 'insensitive' },
         year: Number(year),
-        category: {
-          equals: 'Budgeted',
-          mode: 'insensitive',
-        },
         indicator: {
-          in: ['State Budget', 'Health Budget']
+          equals: 'Health Allocation (%)',
+          mode: 'insensitive'
         }
       },
     });
 
-    const totalStateBudget = healthFinancing
-      .filter(
-        (item) =>
-          item.indicator?.trim().toLowerCase() === 'state budget',
-      )
-      .reduce((sum, item) => sum + (item.value ?? 0), 0);
-
-    const totalHealthBudget = healthFinancing
-      .filter(
-        (item) =>
-          item.indicator?.trim().toLowerCase() === 'health budget',
-      )
-      .reduce((sum, item) => sum + (item.value ?? 0), 0);
-
-    const healthBudgetAllocation =
-      totalStateBudget > 0
-        ? Number(
-          ((totalHealthBudget / totalStateBudget) * 100).toFixed(2),
-        )
-        : null;
 
     return {
       data: {
@@ -219,7 +196,7 @@ export class DashboardService {
         graph_data: result,
         demography_LGA,
         total_Hard_To_Reach: totalHardToReach,
-        healthFin: healthBudgetAllocation,
+        healthFin: healthFinancing,
       },
     };
   }
