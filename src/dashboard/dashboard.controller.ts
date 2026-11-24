@@ -13,7 +13,7 @@ import { UpdateDashboardDto } from './dto/update-dashboard.dto';
 
 @Controller('dashboard')
 export class DashboardController {
-  constructor(private readonly dashboardService: DashboardService) {}
+  constructor(private readonly dashboardService: DashboardService) { }
 
   @Post()
   create(@Body() createDashboardDto: CreateDashboardDto) {
@@ -45,7 +45,6 @@ export class DashboardController {
 
   @Get(':state/:year')
   getDashboardData(@Param('state') state: string, @Param('year') year: string) {
-    console.log(state, year);
     return this.dashboardService.getDashboardData(state, year);
   }
 

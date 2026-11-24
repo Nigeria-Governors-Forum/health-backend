@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateDashboardDto } from './dto/create-dashboard.dto';
 import { UpdateDashboardDto } from './dto/update-dashboard.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { equal } from 'assert';
 
 @Injectable()
 export class DashboardService {
@@ -82,45 +83,72 @@ export class DashboardService {
 
     const totalHardToReach = hardToReachLGAs.length;
 
-    const nDHS = await this.prisma.nDHS.findMany({
+    const numYear = Number(year);
+    const targetYears = [numYear - 2, numYear - 1, numYear];
+    const targetYearStrings = targetYears.map(String);
+
+    const access_Service_Utilization =
+      await this.prisma.access_Service_Utilization.findMany({
+        where: {
+          state: { equals: state, mode: 'insensitive' },
+          OR: [
+            { data_year: { in: targetYearStrings } },
+            { calendar_year: { in: targetYears } },
+          ],
+          indicator: {
+            equals: '4th ANC Visit',
+            mode: 'insensitive',
+          }
+        },
+      });
+
+    const healthOutcome = await this.prisma.health_Outcomes.findMany({
       where: {
-        state,
-        year: { in: [Number(year) - 2, Number(year) - 1, Number(year)] },
+        state: {
+          equals: state,
+          mode: 'insensitive',
+        },
+        OR: [
+          { data_year: { in: targetYearStrings } },
+          { calendar_year: { in: targetYears } },
+        ],
+        indicator: {
+          in: ['Children with Stunting', 'Zero Dose'],
+          mode: 'insensitive',
+        },
       },
     });
 
-    // filter to only the indicators we care about
-    const graphData = nDHS.filter((item) =>
-      ['4th ANC Visit', 'Stunting', 'Full Vaccination'].includes(
-        item?.indicator?.trim() ?? '',
-      ),
-    );
+    const graphData = [
+      ...access_Service_Utilization,
+      ...healthOutcome,
+    ];
 
-    const result = [Number(year) - 2, Number(year) - 1, Number(year)].map(
-      (y) => {
-        const yearData = graphData.filter((item) => item.year === y);
+    const result = targetYears.map((y) => {
+      const yearData = graphData.filter(
+        (item) =>
+          Number(item.data_year ?? item.calendar_year) === y,
+      );
 
-        const fullVaccination = yearData.find(
-          (item) => item?.indicator?.trim() === 'Full Vaccination',
-        );
-        const zeroDose = fullVaccination
-          ? 1 - (fullVaccination?.value ?? 0)
-          : null;
+      const ancVisit = yearData.find(
+        (item) => item.indicator?.trim() === '4th ANC Visit',
+      );
 
-        return {
-          year: y,
-          data: [
-            ...yearData.map((item) => ({
-              indicator: item?.indicator?.trim(),
-              value: item?.value,
-            })),
-            ...(zeroDose !== null
-              ? [{ indicator: 'Zero Dose', value: zeroDose }]
-              : []),
-          ],
-        };
-      },
-    );
+      const stunting = yearData.find(
+        (item) => item.indicator?.trim() === 'Children with Stunting',
+      );
+
+      const zeroDose = yearData.find(
+        (item) => item.indicator?.trim() === 'Zero Dose',
+      );
+
+      return {
+        year: y,
+        fourth_anc_visit: ancVisit?.value ?? null,
+        stunting: stunting?.value ?? null,
+        zero_dose: zeroDose?.value ?? null,
+      };
+    });
 
     const totals = hFacilities.reduce(
       (acc, f) => {
@@ -131,6 +159,41 @@ export class DashboardService {
       },
       {} as Record<string, number>,
     );
+
+    const healthFinancing = await this.prisma.health_Fin.findMany({
+      where: {
+        state: { equals: state, mode: 'insensitive' },
+        year: Number(year),
+        category: {
+          equals: 'Budgeted',
+          mode: 'insensitive',
+        },
+        indicator: {
+          in: ['State Budget', 'Health Budget']
+        }
+      },
+    });
+
+    const totalStateBudget = healthFinancing
+      .filter(
+        (item) =>
+          item.indicator?.trim().toLowerCase() === 'state budget',
+      )
+      .reduce((sum, item) => sum + (item.value ?? 0), 0);
+
+    const totalHealthBudget = healthFinancing
+      .filter(
+        (item) =>
+          item.indicator?.trim().toLowerCase() === 'health budget',
+      )
+      .reduce((sum, item) => sum + (item.value ?? 0), 0);
+
+    const healthBudgetAllocation =
+      totalStateBudget > 0
+        ? Number(
+          ((totalHealthBudget / totalStateBudget) * 100).toFixed(2),
+        )
+        : null;
 
     return {
       data: {
@@ -156,6 +219,7 @@ export class DashboardService {
         graph_data: result,
         demography_LGA,
         total_Hard_To_Reach: totalHardToReach,
+        healthFin: healthBudgetAllocation,
       },
     };
   }

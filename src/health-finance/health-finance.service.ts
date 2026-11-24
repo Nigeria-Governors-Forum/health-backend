@@ -51,7 +51,7 @@ export class HealthFinanceService {
   async getHealthFinanceData(state: string, year: string) {
     const yearNum = Number(year);
 
-    const hFin = await this.prisma.hFin.findMany({
+    const hFin = await this.prisma.health_Fin.findMany({
       where: {
         state: { equals: state, mode: 'insensitive' },
         year: { gte: yearNum - 2, lte: yearNum },
@@ -86,9 +86,11 @@ export class HealthFinanceService {
 
       const grouped: Record<string, number> = {};
       rows.forEach((result) => {
-        if (result.exp_type) {
-          grouped[result.exp_type] =
-            (grouped[result.exp_type] || 0) + (result.value || 0);
+        const expType =
+          result.expenditure_type ?? (result as any).exp_type;
+        if (expType) {
+          grouped[expType] =
+            (grouped[expType] || 0) + (result.value || 0);
         }
       });
 
@@ -124,7 +126,7 @@ export class HealthFinanceService {
       where: { state: { equals: state, mode: 'insensitive' }, year: yearNum },
     });
 
-    const expenditure = await this.prisma.hFin.findMany({
+    const expenditure = await this.prisma.health_Fin.findMany({
       where: {
         state: { equals: state, mode: 'insensitive' },
         year: yearNum,
@@ -146,7 +148,7 @@ export class HealthFinanceService {
   async getZonalHealthFinanceData(zone: string, year: string) {
     const yearNum = Number(year);
 
-    const hFin = await this.prisma.hFin.findMany({
+    const hFin = await this.prisma.health_Fin.findMany({
       where: { year: yearNum, zone: { equals: zone, mode: 'insensitive' } },
     });
 
@@ -187,15 +189,17 @@ export class HealthFinanceService {
       return acc;
     }, {});
 
-    const states = Object.values(groupedByState).map((s) => ({
-      state: s.state,
-      healthBudget: s.healthBudget,
-      stateBudget: s.stateBudget,
-      total:
-        s.stateBudget > 0
-          ? Number(((s.healthBudget / s.stateBudget) * 100).toFixed(2))
-          : 0,
-    }));
+    const states = Object.values(groupedByState).map(
+      (s: { state: string; healthBudget: number; stateBudget: number }) => ({
+        state: s.state,
+        healthBudget: s.healthBudget,
+        stateBudget: s.stateBudget,
+        total:
+          s.stateBudget > 0
+            ? Number(((s.healthBudget / s.stateBudget) * 100).toFixed(2))
+            : 0,
+      }),
+    );
 
     const perCapita = await this.prisma.lGA_Per_Capita.findMany({
       where: { year: yearNum, zone: { equals: zone, mode: 'insensitive' } },

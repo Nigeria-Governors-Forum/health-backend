@@ -151,15 +151,15 @@ model Health_Outcomes {
   target        Float?
 }
 
-model HFin {
+model Health_Fin {
   id                     Int     @id @default(autoincrement())
   zone                   String?
   state                  String?
   year                   Int?
-  Page                   String?
+  page                   String?
   category               String?
   indicator              String?
-  exp_type               String?
+  expenditure_type       String?
   program_classification String?
   value                  Float?
 }
@@ -238,4 +238,3 @@ model Threat_Vulnerability_LGA {
   risk            String?
   primary_threats String?
 }
-

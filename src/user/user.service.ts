@@ -51,6 +51,9 @@ function getPrismaModel(prisma: any, name: string): any {
   if (norm === 'health_training_institutions') {
     return prisma.health_Training_Institutions;
   }
+  if (norm === 'health_fin' || norm === 'hfin') {
+    return prisma.health_Fin;
+  }
   if (
     norm === 'threat_vulnerability_assessment' ||
     norm === 'threat_assessment' ||
@@ -108,6 +111,14 @@ export class UserService {
       'calendar_year',
       'data_year',
       'indicator',
+    ],
+    Health_Fin: [
+      'state',
+      'year',
+      'category',
+      'indicator',
+      'expenditure_type',
+      'program_classification',
     ],
     HFin: [
       'state',
@@ -258,7 +269,8 @@ export class UserService {
       let canonicalSheetKey = sheetName.trim().replace(/\s+/g, '_');
       const normLower = canonicalSheetKey.toLowerCase();
       if (normLower === 'demography_lga') canonicalSheetKey = 'Demography_LGA';
-      else if (normLower === 'health_fin') canonicalSheetKey = 'HFin';
+      else if (normLower === 'health_fin' || normLower === 'hfin')
+        canonicalSheetKey = 'Health_Fin';
       else if ( normLower === 'health_facilities')
         canonicalSheetKey = 'Health_Facilities';
       else if (
@@ -439,7 +451,7 @@ export class UserService {
                   fieldName === 'lga_population' ||
                   fieldName === 'percentage' ||
                   fieldName === 'target' ||
-                  (canonicalSheetKey === 'HFin' && fieldName === 'value') ||
+                  ((canonicalSheetKey === 'Health_Fin' || canonicalSheetKey === 'HFin') && fieldName === 'value') ||
                   (usesCalendarYear && fieldName === 'value') ||
                   (canonicalSheetKey === 'HRH' && fieldName === 'density');
                 value = parseNumericValue(value, isFloat);
@@ -449,9 +461,10 @@ export class UserService {
             // Map section column to page field
             if (fieldName === 'section') fieldName = 'page';
 
-            if (canonicalSheetKey === 'HFin') {
+            if (canonicalSheetKey === 'Health_Fin' || canonicalSheetKey === 'HFin') {
               if (fieldName === 'type') fieldName = 'category';
               if (fieldName === 'page') fieldName = 'Page';
+              if (fieldName === 'exp_type') fieldName = 'expenditure_type';
             }
 
             // Map Demography_LGA column variants
