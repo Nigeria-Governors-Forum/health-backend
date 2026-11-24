@@ -162,6 +162,8 @@ model Health_Fin {
   expenditure_type       String?
   program_classification String?
   value                  Float?
+
+  @@map("health_fin")
 }
 
 model Partners_Mapping {
