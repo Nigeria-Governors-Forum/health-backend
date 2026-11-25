@@ -20,22 +20,10 @@ CREATE TABLE "public"."Demography" (
     "page" TEXT,
     "indicator" TEXT,
     "value" INTEGER,
+    "category_1" TEXT,
+    "category_2" TEXT,
 
     CONSTRAINT "Demography_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."Partners_Mapping" (
-    "id" SERIAL NOT NULL,
-    "zone" TEXT,
-    "state" TEXT,
-    "year" INTEGER,
-    "page" TEXT,
-    "partner" TEXT,
-    "intervention_group_correct" TEXT,
-    "coverage_area" INTEGER,
-
-    CONSTRAINT "Partners_Mapping_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -48,14 +36,16 @@ CREATE TABLE "public"."Demography_LGA" (
     "lga" TEXT,
     "lga_population" DOUBLE PRECISION,
     "number_of_wards" INTEGER,
-    "hard_to_reach_wards" TEXT,
+    "hard_to_reach_wards" INTEGER,
+    "hard_to_reach_colour" TEXT,
     "health_facilities" INTEGER,
+    "density" INTEGER,
 
     CONSTRAINT "Demography_LGA_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."HFcilities" (
+CREATE TABLE "public"."Health_Facilities" (
     "id" SERIAL NOT NULL,
     "zone" TEXT,
     "state" TEXT,
@@ -65,12 +55,13 @@ CREATE TABLE "public"."HFcilities" (
     "level" TEXT,
     "ownership" TEXT,
     "value" INTEGER,
+    "state_population" INTEGER,
 
-    CONSTRAINT "HFcilities_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Health_Facilities_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."HFcilities_Service_Provision" (
+CREATE TABLE "public"."Health_Fac_Service_Provision" (
     "id" SERIAL NOT NULL,
     "zone" TEXT,
     "state" TEXT,
@@ -80,11 +71,26 @@ CREATE TABLE "public"."HFcilities_Service_Provision" (
     "number" INTEGER,
     "percentage" DOUBLE PRECISION,
 
-    CONSTRAINT "HFcilities_Service_Provision_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Health_Fac_Service_Provision_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."HRH" (
+    "id" SERIAL NOT NULL,
+    "zone" TEXT,
+    "state" TEXT,
+    "year" INTEGER,
+    "page" TEXT,
+    "indicator" TEXT,
+    "values" INTEGER,
+    "density" DOUBLE PRECISION,
+    "target" DOUBLE PRECISION,
+
+    CONSTRAINT "HRH_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Health_Training_Institutions" (
     "id" SERIAL NOT NULL,
     "zone" TEXT,
     "state" TEXT,
@@ -94,21 +100,21 @@ CREATE TABLE "public"."HRH" (
     "ownership" TEXT,
     "value" INTEGER,
 
-    CONSTRAINT "HRH_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Health_Training_Institutions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."HRH" (
+CREATE TABLE "public"."Admission_Quota" (
     "id" SERIAL NOT NULL,
     "zone" TEXT,
     "state" TEXT,
     "year" INTEGER,
     "page" TEXT,
-    "institution" TEXT,
-    "number" INTEGER,
-    "density" DOUBLE PRECISION,
+    "indicator" TEXT,
+    "faculty" TEXT,
+    "value" INTEGER,
 
-    CONSTRAINT "HRH_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Admission_Quota_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -118,11 +124,26 @@ CREATE TABLE "public"."Insurance_Coverage" (
     "state" TEXT,
     "year" INTEGER,
     "page" TEXT,
-    "name" TEXT,
     "indicator" TEXT,
+    "enrollee_type" TEXT,
     "value" INTEGER,
 
     CONSTRAINT "Insurance_Coverage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Scorecards" (
+    "id" SERIAL NOT NULL,
+    "zone" TEXT,
+    "state" TEXT,
+    "year" INTEGER,
+    "page" TEXT,
+    "name" TEXT,
+    "indicator" TEXT,
+    "value" TEXT,
+    "round" TEXT,
+
+    CONSTRAINT "Scorecards_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -130,11 +151,13 @@ CREATE TABLE "public"."Access_Service_Utilization" (
     "id" SERIAL NOT NULL,
     "zone" TEXT,
     "state" TEXT,
-    "year" INTEGER,
+    "calendar_year" INTEGER,
+    "data_year" TEXT,
     "page" TEXT,
     "indicator" TEXT,
     "source" TEXT,
     "value" DOUBLE PRECISION,
+    "target" DOUBLE PRECISION,
 
     CONSTRAINT "Access_Service_Utilization_pkey" PRIMARY KEY ("id")
 );
@@ -144,12 +167,58 @@ CREATE TABLE "public"."Health_Outcomes" (
     "id" SERIAL NOT NULL,
     "zone" TEXT,
     "state" TEXT,
-    "year" INTEGER,
+    "calendar_year" INTEGER,
+    "data_year" TEXT,
     "page" TEXT,
     "indicator" TEXT,
-    "value" INTEGER,
+    "source" TEXT,
+    "value" DOUBLE PRECISION,
+    "target" DOUBLE PRECISION,
 
     CONSTRAINT "Health_Outcomes_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."health_fin" (
+    "id" SERIAL NOT NULL,
+    "zone" TEXT,
+    "state" TEXT,
+    "year" INTEGER,
+    "page" TEXT,
+    "category" TEXT,
+    "indicator" TEXT,
+    "expenditure_type" TEXT,
+    "program_classification" TEXT,
+    "value" DOUBLE PRECISION,
+
+    CONSTRAINT "health_fin_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Partners_Mapping" (
+    "id" SERIAL NOT NULL,
+    "zone" TEXT,
+    "state" TEXT,
+    "year" INTEGER,
+    "page" TEXT,
+    "partner" TEXT,
+    "intervention_area" TEXT,
+    "coverage_area" TEXT,
+
+    CONSTRAINT "Partners_Mapping_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Flagship_Project" (
+    "id" SERIAL NOT NULL,
+    "zone" TEXT,
+    "state" TEXT,
+    "year" INTEGER,
+    "page" TEXT,
+    "project" TEXT,
+    "description" TEXT,
+
+    CONSTRAINT "Flagship_Project_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -167,65 +236,7 @@ CREATE TABLE "public"."NDHS" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."HFin" (
-    "id" SERIAL NOT NULL,
-    "zone" TEXT,
-    "state" TEXT,
-    "year" INTEGER,
-    "category" TEXT,
-    "indicator" TEXT,
-    "exp_type" TEXT,
-    "status" TEXT,
-    "value" DOUBLE PRECISION,
-
-    CONSTRAINT "HFin_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."HFin_2" (
-    "id" SERIAL NOT NULL,
-    "zone" TEXT,
-    "state" TEXT,
-    "year" INTEGER,
-    "category" TEXT,
-    "indicator" TEXT,
-    "exp_type" TEXT,
-    "status" TEXT,
-    "value" DOUBLE PRECISION,
-
-    CONSTRAINT "HFin_2_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."Per_Capita" (
-    "id" SERIAL NOT NULL,
-    "zone" TEXT,
-    "state" TEXT,
-    "year" INTEGER,
-    "health_exp" DOUBLE PRECISION,
-    "state_population" DOUBLE PRECISION,
-    "per_capita" DOUBLE PRECISION,
-
-    CONSTRAINT "Per_Capita_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."LGA_Fin" (
-    "id" SERIAL NOT NULL,
-    "zone" TEXT,
-    "state" TEXT,
-    "year" INTEGER,
-    "lga" TEXT,
-    "indicator" TEXT,
-    "exp_type" TEXT,
-    "status" TEXT,
-    "value" DOUBLE PRECISION,
-
-    CONSTRAINT "LGA_Fin_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."LGA_PCap" (
+CREATE TABLE "public"."LGA_Per_Capita" (
     "id" SERIAL NOT NULL,
     "zone" TEXT,
     "state" TEXT,
@@ -236,21 +247,47 @@ CREATE TABLE "public"."LGA_PCap" (
     "indicator" TEXT,
     "budget" DOUBLE PRECISION,
 
-    CONSTRAINT "LGA_PCap_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "LGA_Per_Capita_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."Scorecards" (
+CREATE TABLE "public"."Presidential_Indicators" (
     "id" SERIAL NOT NULL,
     "zone" TEXT,
     "state" TEXT,
-    "name" TEXT,
-    "period" TIMESTAMP(3),
+    "year" INTEGER,
     "indicator" TEXT,
-    "status" TEXT,
     "value" INTEGER,
 
-    CONSTRAINT "Scorecards_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Presidential_Indicators_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Threat_Vulnerability_Assessment" (
+    "id" SERIAL NOT NULL,
+    "zone" TEXT,
+    "state" TEXT,
+    "year" INTEGER,
+    "page" TEXT,
+    "risk" TEXT,
+    "primary_threats" TEXT,
+    "hotspots_lga" TEXT,
+
+    CONSTRAINT "Threat_Vulnerability_Assessment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Threat_Vulnerability_LGA" (
+    "id" SERIAL NOT NULL,
+    "zone" TEXT,
+    "state" TEXT,
+    "year" INTEGER,
+    "page" TEXT,
+    "lga" TEXT,
+    "risk" TEXT,
+    "primary_threats" TEXT,
+
+    CONSTRAINT "Threat_Vulnerability_LGA_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
