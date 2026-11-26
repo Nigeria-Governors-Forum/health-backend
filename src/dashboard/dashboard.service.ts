@@ -50,7 +50,7 @@ export class DashboardService {
       where: { state, year: Number(year) },
     });
 
-    const hRH = await this.prisma.health_Training_Institutions.findMany({
+    const healthTrainingInstitutions = await this.prisma.health_Training_Institutions.findMany({
       where: { state, year: Number(year) },
     });
 
@@ -62,29 +62,123 @@ export class DashboardService {
       0,
     );
 
-    // const partnersMapping = await this.prisma.partners_Mapping.findMany({
-    //   where: { state, year: Number(year) },
-    // });
-
-    // const uniquePartners = [
-    //   ...new Set(partnersMapping.map((p) => p.partner?.trim())),
-    // ].filter(Boolean);
-
     const demography_LGA = await this.prisma.demography_LGA.findMany({
       where: { state, year: Number(year) },
     });
 
     const hardToReachLGAs = demography_LGA
-      .filter((item) => Number(item.hard_to_reach_wards ?? 0) > 0)
+      .filter((item) => Number(item.hard_to_reach_colour ?? 0) > 0)
       .map((item) => ({
         lga: item.lga,
-        hard_to_reach: item.hard_to_reach_wards,
+        hard_to_reach: item.hard_to_reach_colour,
       }));
 
     const totalHardToReach = hardToReachLGAs.length;
 
+    // const numYear = Number(year);
+    // const targetYears = [numYear - 2, numYear - 1, numYear];
+    // const targetYearStrings = targetYears.map(String);
+
+    // const access_Service_Utilization =
+    //   await this.prisma.access_Service_Utilization.findMany({
+    //     where: {
+    //       state: { equals: state, mode: 'insensitive' },
+    //       OR: [
+    //         { data_year: { in: targetYearStrings } },
+    //         { calendar_year: { in: targetYears } },
+    //       ],
+    //       indicator: {
+    //         equals: '4th ANC Visit',
+    //         mode: 'insensitive',
+    //       }
+    //     },
+    //   });
+
+    // const healthOutcome = await this.prisma.health_Outcomes.findMany({
+    //   where: {
+    //     state: {
+    //       equals: state,
+    //       mode: 'insensitive',
+    //     },
+    //     OR: [
+    //       { data_year: { in: targetYearStrings } },
+    //       { calendar_year: { in: targetYears } },
+    //     ],
+    //     indicator: {
+    //       in: ['Children with Stunting', 'Zero Dose'],
+    //       mode: 'insensitive',
+    //     },
+    //   },
+    // });
+
+    // const graphData = [
+    //   ...access_Service_Utilization,
+    //   ...healthOutcome,
+    // ];
+
+    // const result = targetYears.map((y) => {
+    //   const yearData = graphData.filter(
+    //     (item) =>
+    //       Number(item.data_year ?? item.calendar_year) === y,
+    //   );
+
+    //   const ancVisit = yearData.find(
+    //     (item) => item.indicator?.trim() === '4th ANC Visit',
+    //   );
+
+    //   const stunting = yearData.find(
+    //     (item) => item.indicator?.trim() === 'Children with Stunting',
+    //   );
+
+    //   const zeroDose = yearData.find(
+    //     (item) => item.indicator?.trim() === 'Zero Dose',
+    //   );
+
+    //   return {
+    //     year: y,
+    //     fourth_anc_visit: ancVisit?.value ?? null,
+    //     stunting: stunting?.value ?? null,
+    //     zero_dose: zeroDose?.value ?? null,
+    //   };
+    // });
+
     const numYear = Number(year);
-    const targetYears = [numYear - 2, numYear - 1, numYear];
+
+    const FIRST_YEAR = 2018;
+    const YEAR_INTERVAL = 5;
+    const MAX_YEARS = 3;
+
+    // Generate all released years up to the requested year
+    const availableYears: number[] = [];
+
+    if (numYear < FIRST_YEAR) {
+      availableYears.push(FIRST_YEAR, FIRST_YEAR + YEAR_INTERVAL);
+    } else {
+      const latestAvailableYear =
+        FIRST_YEAR +
+        Math.floor((numYear - FIRST_YEAR) / YEAR_INTERVAL) *
+        YEAR_INTERVAL;
+
+      for (
+        let y = FIRST_YEAR;
+        y <= latestAvailableYear;
+        y += YEAR_INTERVAL
+      ) {
+        availableYears.push(y);
+      }
+
+      // Keep at most the latest 3 years
+      if (availableYears.length > MAX_YEARS) {
+        availableYears.splice(0, availableYears.length - MAX_YEARS);
+      }
+
+      // Ensure a minimum of 2 years
+      if (availableYears.length < 2) {
+        availableYears.push(availableYears[0] + YEAR_INTERVAL);
+      }
+    }
+
+    const targetYears = availableYears;
     const targetYearStrings = targetYears.map(String);
 
     const access_Service_Utilization =
@@ -98,7 +192,7 @@ export class DashboardService {
           indicator: {
             equals: '4th ANC Visit',
             mode: 'insensitive',
-          }
+          },
         },
       });
 
@@ -112,10 +206,24 @@ export class DashboardService {
           { data_year: { in: targetYearStrings } },
           { calendar_year: { in: targetYears } },
         ],
-        indicator: {
-          in: ['Children with Stunting', 'Zero Dose'],
-          mode: 'insensitive',
-        },
+        AND: [
+          {
+            OR: [
+              {
+                indicator: {
+                  contains: 'Children with Stunting',
+                  mode: 'insensitive',
+                },
+              },
+              {
+                indicator: {
+                  contains: 'Zero Dose',
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          },
+        ],
       },
     });
 
@@ -126,20 +234,20 @@ export class DashboardService {
 
     const result = targetYears.map((y) => {
       const yearData = graphData.filter(
-        (item) =>
-          Number(item.data_year ?? item.calendar_year) === y,
+        (item) => Number(item.data_year ?? item.calendar_year) === y,
       );
 
       const ancVisit = yearData.find(
-        (item) => item.indicator?.trim() === '4th ANC Visit',
+        (item) => item.indicator?.trim().toLowerCase() === '4th anc visit',
       );
 
       const stunting = yearData.find(
-        (item) => item.indicator?.trim() === 'Children with Stunting',
+        (item) =>
+          item.indicator?.trim().toLowerCase() === 'children with stunting',
       );
 
       const zeroDose = yearData.find(
-        (item) => item.indicator?.trim() === 'Zero Dose',
+        (item) => item.indicator?.trim().toLowerCase() === 'zero dose',
       );
 
       return {
@@ -187,9 +295,8 @@ export class DashboardService {
           data['total_population'] && data['total_population'] > 0
             ? Math.round((totalValue / data['total_population']) * 100)
             : null,
-        // partners_mapping: uniquePartners.length,
-        hRH: hRH.reduce((acc, cur) => acc + (Number(cur?.value) || 0), 0),
-        HRH: HRH.reduce(
+        health_training_institutions: healthTrainingInstitutions.reduce((acc, cur) => acc + (Number(cur?.value) || 0), 0),
+        total_HRH: HRH.reduce(
           (acc, cur) => acc + (Number(cur.values ?? 0) || 0),
           0,
         ),
